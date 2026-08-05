@@ -1,0 +1,5 @@
+{
+  "colors": {"background":"#080D14","surface":"#121B25","primary":"#35D0BA","success":"#56D364","error":"#FF6B6B","textPrimary":"#F4F7FA","textSecondary":"#AAB6C2"},
+  "dimensions": {"cornerRadius":16,"buttonHeight":52,"screenPadding":20,"defaultSpacing":12},
+  "animation": {"shortDurationMs":180,"normalDurationMs":300}
+}

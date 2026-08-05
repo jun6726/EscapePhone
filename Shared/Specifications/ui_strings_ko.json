@@ -1,0 +1,7 @@
+{
+  "app_title":"The Last Commit","app_subtitle":"사라진 개발자의 휴대폰","play_time":"25–35분","new_game":"새 게임","continue_game":"이어하기","settings":"설정","about":"게임 소개","reset_game":"게임 초기화",
+  "intro_1":"NOVACODE의 앱 Trace 출시를 앞두고 개발자 한도윤이 사라졌다.","intro_2":"휴대폰에는 동의 없는 행동 데이터 수집의 흔적이 있다.","intro_3":"서버가 증거를 지우기 전에 조작된 커밋을 추적해야 한다.",
+  "messenger":"메신저","flashlight":"손전등","flashlight_instruction_title":"손전등 사용 방법","flashlight_instruction":"스마트폰의 기울기에 따라서 손전등의 표시가 움직입니다. 특정 문자 위에서 1초이상 있으면 우측 상단에 기록됩니다.\n\n위에서 부터 힌트를 찾아주세요.","encrypted_note":"암호화 메모","encrypted_note_context":"대상은 증거 기록 / 동작은 데이터 수집 / 상태는 아직 진행 중","encrypted_note_format":"[대상] [동작] [진행 상태]","audio_record":"손상된 음성 기록","commit_graph":"커밋 그래프 복구","access_log":"접근 로그 교차 검증","server":"서버","final_decision":"최종 결정","hint":"힌트 보기",
+  "submit_code":"코드 제출","server_code_help":"조작 커밋 417 + 증거 삭제 예약 01:21의 분 단위 121","public_disclosure":"증거를 외부 감사 서버에 공개한다","encrypted_archive":"증거를 암호화해 보관한다","ending_title":"서버 복구 성공",
+  "feedback_title":"플레이 경험을 알려주세요","difficulty_label":"난이도 · 1 매우 쉬움 / 5 매우 어려움","feedback_placeholder":"불편했던 점이나 개선 의견","feedback_submit":"피드백 저장","feedback_saved":"피드백 저장 완료","analytics_local_only":"서버 미설정 또는 오프라인일 때 분석 JSON은 기기에 대기합니다.","share_playtest_report":"익명 분석 보고서 공유","analytics_consent_title":"익명 플레이 분석에 참여할까요?","analytics_consent_accept":"동의하고 계속","analytics_consent_decline":"동의하지 않음","analytics_consent_withdraw":"동의 철회 및 기기 내 분석 데이터 삭제","device_analytics":"기기 분석 데이터","analytics_retry_now":"현재 데이터 즉시 전송","analytics_last_success":"마지막 성공","analytics_last_failure":"마지막 실패"
+}

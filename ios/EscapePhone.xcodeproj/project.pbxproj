@@ -1,0 +1,351 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		DDDDDDDDDDDDDDDDDDDDDDDD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EEEEEEEEEEEEEEEEEEEEEEEE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FFFFFFFFFFFFFFFFFFFFFFFF;
+			remoteInfo = EscapePhone;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		333333333333333333333333 /* EscapePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = EscapePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		444444444444444444444444 /* EscapePhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = EscapePhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		111111111111111111111111 /* EscapePhone */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = EscapePhone; sourceTree = "<group>"; };
+		222222222222222222222222 /* EscapePhoneTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = EscapePhoneTests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		888888888888888888888888 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BBBBBBBBBBBBBBBBBBBBBBBB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		555555555555555555555555 = {
+			isa = PBXGroup;
+			children = (
+				111111111111111111111111 /* EscapePhone */,
+				222222222222222222222222 /* EscapePhoneTests */,
+				666666666666666666666666 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		666666666666666666666666 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				333333333333333333333333 /* EscapePhone.app */,
+				444444444444444444444444 /* EscapePhoneTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		141414141414141414141414 /* EscapePhoneTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 151515151515151515151515 /* Build configuration list for PBXNativeTarget "EscapePhoneTests" */;
+			buildPhases = (
+				AAAAAAAAAAAAAAAAAAAAAAAA /* Sources */,
+				BBBBBBBBBBBBBBBBBBBBBBBB /* Frameworks */,
+				CCCCCCCCCCCCCCCCCCCCCCCC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				121212121212121212121212 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				222222222222222222222222 /* EscapePhoneTests */,
+			);
+			name = EscapePhoneTests;
+			productName = EscapePhoneTests;
+			productReference = 444444444444444444444444 /* EscapePhoneTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		FFFFFFFFFFFFFFFFFFFFFFFF /* EscapePhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 131313131313131313131313 /* Build configuration list for PBXNativeTarget "EscapePhone" */;
+			buildPhases = (
+				777777777777777777777777 /* Sources */,
+				888888888888888888888888 /* Frameworks */,
+				999999999999999999999999 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				111111111111111111111111 /* EscapePhone */,
+			);
+			name = EscapePhone;
+			productName = EscapePhone;
+			productReference = 333333333333333333333333 /* EscapePhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EEEEEEEEEEEEEEEEEEEEEEEE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					141414141414141414141414 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = FFFFFFFFFFFFFFFFFFFFFFFF;
+					};
+					FFFFFFFFFFFFFFFFFFFFFFFF = {
+						CreatedOnToolsVersion = 16.2;
+					};
+				};
+			};
+			buildConfigurationList = 161616161616161616161616 /* Build configuration list for PBXProject "EscapePhone" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = ko;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ko,
+				Base,
+			);
+			mainGroup = 555555555555555555555555;
+			productRefGroup = 666666666666666666666666 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FFFFFFFFFFFFFFFFFFFFFFFF /* EscapePhone */,
+				141414141414141414141414 /* EscapePhoneTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		999999999999999999999999 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CCCCCCCCCCCCCCCCCCCCCCCC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		777777777777777777777777 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AAAAAAAAAAAAAAAAAAAAAAAA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		121212121212121212121212 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FFFFFFFFFFFFFFFFFFFFFFFF /* EscapePhone */;
+			targetProxy = DDDDDDDDDDDDDDDDDDDDDDDD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		171717171717171717171717 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		181818181818181818181818 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		191919191919191919191919 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 4QS9GUW4HM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Last Commit";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_NSMotionUsageDescription = "사진 속 숨겨진 단서를 찾기 위해 기울기 정보를 사용합니다.";
+				INFOPLIST_KEY_PLAYTEST_ANALYTICS_ENDPOINT = "$(PLAYTEST_ANALYTICS_URL)";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				MARKETING_VERSION = 1.2;
+				PLAYTEST_ANALYTICS_URL = "https://s-imac.coati-bramble.ts.net/v1/playtest-events";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.escapephone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		202020202020202020202020 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 4QS9GUW4HM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Last Commit";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_NSMotionUsageDescription = "사진 속 숨겨진 단서를 찾기 위해 기울기 정보를 사용합니다.";
+				INFOPLIST_KEY_PLAYTEST_ANALYTICS_ENDPOINT = "$(PLAYTEST_ANALYTICS_URL)";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				MARKETING_VERSION = 1.2;
+				PLAYTEST_ANALYTICS_URL = "https://s-imac.coati-bramble.ts.net/v1/playtest-events";
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.escapephone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		212121212121212121212121 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.escapephone.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EscapePhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/EscapePhone";
+			};
+			name = Debug;
+		};
+		232323232323232323232323 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.escapephone.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EscapePhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/EscapePhone";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		131313131313131313131313 /* Build configuration list for PBXNativeTarget "EscapePhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				191919191919191919191919 /* Debug */,
+				202020202020202020202020 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		151515151515151515151515 /* Build configuration list for PBXNativeTarget "EscapePhoneTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				212121212121212121212121 /* Debug */,
+				232323232323232323232323 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		161616161616161616161616 /* Build configuration list for PBXProject "EscapePhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				171717171717171717171717 /* Debug */,
+				181818181818181818181818 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EEEEEEEEEEEEEEEEEEEEEEEE /* Project object */;
+}

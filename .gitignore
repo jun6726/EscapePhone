@@ -1,0 +1,67 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Android
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcarchive/
+xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Secrets and signing
+*.p12
+*.mobileprovision
+*.cer
+*.provisionprofile
+*.keystore
+secrets.properties
+secrets.plist
+Secrets.swift
+.env
+.env.*
+GoogleService-Info.plist
+
+# Generated output
+coverage/
+reports/
+screenshots/
+__pycache__/
+*.pyc
+
+# Build artifacts
+*.apk
+*.aab

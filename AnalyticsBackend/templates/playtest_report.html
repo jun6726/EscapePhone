@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>EscapePhone 플레이 리포트</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07100f;
+      --panel: #101d1b;
+      --line: #263b37;
+      --text: #eefcf7;
+      --muted: #9bb5ad;
+      --accent: #59f2b0;
+      --accent2: #4fc3f7;
+      --warn: #ffd166;
+      --danger: #ff7b8a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at 20% 0%, #12312b 0, var(--bg) 34rem); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, input { font: inherit; }
+    .shell { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 60px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 4px; font-size: clamp(24px, 4vw, 36px); letter-spacing: -.04em; }
+    h2 { margin-bottom: 16px; font-size: 18px; }
+    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .12em; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .panel { background: color-mix(in srgb, var(--panel) 94%, transparent); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 18px 60px #0005; }
+    .login { max-width: 430px; margin: 12vh auto 0; }
+    .login form { display: grid; gap: 12px; }
+    input { width: 100%; padding: 13px 14px; color: var(--text); background: #091411; border: 1px solid var(--line); border-radius: 10px; outline: none; }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #59f2b022; }
+    button { border: 0; border-radius: 10px; padding: 11px 15px; cursor: pointer; color: #04110d; background: var(--accent); font-weight: 750; }
+    button.secondary { color: var(--text); background: #1b2c28; border: 1px solid var(--line); }
+    .error { padding: 10px 12px; border-radius: 9px; color: #ffdbe0; background: #651c2933; border: 1px solid #9c3549; }
+    .actions { display: flex; align-items: center; gap: 10px; }
+    .actions form { margin: 0; }
+    .cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .card { min-height: 118px; }
+    .metric { margin-top: 14px; font-size: 30px; font-weight: 800; letter-spacing: -.04em; }
+    .metric small { font-size: 14px; color: var(--muted); letter-spacing: 0; }
+    .section { margin-top: 20px; }
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    th, td { padding: 12px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); font-size: 12px; font-weight: 650; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .rate { display: inline-flex; min-width: 54px; justify-content: center; padding: 3px 8px; border-radius: 999px; color: var(--accent); background: #59f2b016; }
+    .reason { max-width: 290px; white-space: normal; color: var(--muted); font-size: 13px; }
+    .feedback-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+    .rating-row { display: grid; grid-template-columns: 22px 1fr 32px; align-items: center; gap: 9px; margin: 10px 0; }
+    .bar { height: 9px; overflow: hidden; border-radius: 999px; background: #22332f; }
+    .bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+    .comments { display: grid; gap: 10px; max-height: 340px; overflow: auto; }
+    .comment { padding: 12px 14px; border-radius: 12px; background: #091411; border: 1px solid var(--line); }
+    .comment p { margin-bottom: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .comment small { color: var(--muted); }
+    .empty { padding: 26px; text-align: center; color: var(--muted); }
+    .status { min-height: 22px; margin-bottom: 10px; text-align: right; color: var(--muted); font-size: 13px; }
+    @media (max-width: 920px) { .cards { grid-template-columns: repeat(2, 1fr); } .feedback-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .shell { width: min(100% - 20px, 1280px); padding-top: 18px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr 1fr; } .card { min-height: 104px; padding: 16px; } .metric { font-size: 25px; } .actions { width: 100%; } .actions button { flex: 1; } }
+  </style>
+</head>
+<body>
+{% if not authenticated %}
+  <main class="shell">
+    <section class="panel login">
+      <div class="eyebrow">NOVACODE · PLAYTEST</div>
+      <h1>EscapePhone 리포트</h1>
+      <p class="muted">익명 플레이 지표와 사용자의 선택 피드백을 조회합니다.</p>
+      {% if login_error %}<p class="error">{{ login_error }}</p>{% endif %}
+      {% if admin_enabled %}
+      <form method="post" autocomplete="off">
+        <label for="admin_token">관리자 비밀번호</label>
+        <input id="admin_token" name="admin_token" type="password" required autofocus>
+        <button type="submit">리포트 열기</button>
+      </form>
+      {% else %}
+      <p class="error">서버에 PLAYTEST_ADMIN_TOKEN이 설정되지 않았습니다.</p>
+      {% endif %}
+    </section>
+  </main>
+{% else %}
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">NOVACODE · PLAYTEST</div>
+        <h1>EscapePhone 플레이 리포트</h1>
+        <div id="generated" class="muted">데이터를 불러오는 중입니다.</div>
+      </div>
+      <div class="actions">
+        <button id="refresh" type="button">새로고침</button>
+        <form method="post" action="/playtest-report/logout"><button class="secondary" type="submit">로그아웃</button></form>
+      </div>
+    </header>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <section class="cards" aria-label="요약 지표">
+      <article class="panel card"><div class="muted">전체 세션</div><div id="totalSessions" class="metric">–</div></article>
+      <article class="panel card"><div class="muted">게임 완료</div><div id="completedSessions" class="metric">–</div></article>
+      <article class="panel card"><div class="muted">완료율</div><div id="gameCompletionRate" class="metric">–</div></article>
+      <article class="panel card"><div class="muted">평균 난이도</div><div id="averageDifficulty" class="metric">–</div></article>
+      <article class="panel card"><div class="muted">플랫폼</div><div id="platforms" class="metric">–</div></article>
+    </section>
+
+    <section class="panel section">
+      <div class="section-head"><h2>퍼즐별 지표</h2><span class="muted">시간은 완료한 사용자 기준</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>퍼즐</th><th>시작</th><th>완료</th><th>완료율</th><th>중앙 시간</th><th>평균 오답</th><th>평균 힌트</th><th>평균 이탈</th><th>주요 오답 이유</th></tr></thead>
+          <tbody id="puzzleRows"></tbody>
+        </table>
+      </div>
+      <div id="puzzleEmpty" class="empty" hidden>아직 수집된 퍼즐 데이터가 없습니다.</div>
+    </section>
+
+    <section class="panel section">
+      <div class="section-head"><h2>난이도와 피드백</h2><span id="feedbackCount" class="muted"></span></div>
+      <div class="feedback-grid">
+        <div id="ratings"></div>
+        <div id="comments" class="comments"></div>
+      </div>
+    </section>
+
+    <section class="panel section">
+      <div class="section-head"><h2>최근 세션</h2><span class="muted">익명 ID 앞 8자리만 표시</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>수신 시각</th><th>세션</th><th>플랫폼</th><th>버전</th><th>퍼즐 진행</th><th>플레이 시간</th><th>엔딩</th><th>최종 보고</th></tr></thead>
+          <tbody id="sessionRows"></tbody>
+        </table>
+      </div>
+      <div id="sessionEmpty" class="empty" hidden>아직 수집된 세션이 없습니다.</div>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const number = (value, digits = 0) => Number(value || 0).toLocaleString('ko-KR', { maximumFractionDigits: digits });
+    const cell = (value, className = '') => { const td = document.createElement('td'); td.textContent = value; if (className) td.className = className; return td; };
+    const reasonNames = {
+      backNavigation: '뒤로 가기', appBackgroundOrClosed: '백그라운드/종료',
+      noteWordOrderIncorrect: '단어 순서 오류', audioOrderIncorrect: '음성 순서 오류',
+      commitGraphIncorrect: '커밋 배치 오류', accessLogAnswerIncorrect: '접근 기록 답변 오류',
+      serverCodeIncorrect: '서버 코드 오류'
+    };
+    const endingNames = { publicDisclosure: '외부 공개', encryptedArchive: '암호화 보관' };
+
+    function render(data) {
+      $('generated').textContent = `마지막 집계 ${new Date(data.generatedAt).toLocaleString('ko-KR')} · 60초마다 자동 갱신`;
+      $('totalSessions').textContent = number(data.totalSessions);
+      $('completedSessions').textContent = number(data.completedSessions);
+      const completion = data.totalSessions ? data.completedSessions * 100 / data.totalSessions : 0;
+      $('gameCompletionRate').textContent = `${number(completion, 1)}%`;
+      $('averageDifficulty').textContent = data.feedback.count ? `${number(data.feedback.averageDifficulty, 2)} / 5` : '–';
+      $('platforms').innerHTML = '';
+      const platformText = document.createTextNode(`A ${number(data.platformCounts.android)} · i ${number(data.platformCounts.ios)}`);
+      $('platforms').append(platformText);
+
+      const puzzleRows = $('puzzleRows'); puzzleRows.replaceChildren();
+      data.puzzles.forEach(puzzle => {
+        if (!puzzle.startedCount) return;
+        const tr = document.createElement('tr');
+        tr.append(cell(puzzle.name), cell(number(puzzle.startedCount)), cell(number(puzzle.completedCount)));
+        const rate = cell(''); const badge = document.createElement('span'); badge.className = 'rate'; badge.textContent = `${number(puzzle.completionRate, 1)}%`; rate.append(badge); tr.append(rate);
+        tr.append(cell(`${number(puzzle.medianSeconds, 1)}초`), cell(number(puzzle.averageWrong, 2)), cell(number(puzzle.averageHints, 2)), cell(number(puzzle.averageExits, 2)));
+        const reasons = puzzle.wrongReasons.slice(0, 3).map(item => `${reasonNames[item.reason] || item.reason} ${item.count}회`).join(' · ') || '–';
+        tr.append(cell(reasons, 'reason')); puzzleRows.append(tr);
+      });
+      $('puzzleEmpty').hidden = puzzleRows.children.length > 0;
+
+      $('feedbackCount').textContent = `${number(data.feedback.count)}개 응답`;
+      const ratings = $('ratings'); ratings.replaceChildren();
+      const maxRatingCount = Math.max(1, ...Object.values(data.feedback.ratingCounts));
+      for (let value = 5; value >= 1; value--) {
+        const count = data.feedback.ratingCounts[String(value)] || 0;
+        const row = document.createElement('div'); row.className = 'rating-row';
+        row.append(document.createTextNode(String(value)));
+        const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('span'); fill.style.width = `${count * 100 / maxRatingCount}%`; bar.append(fill); row.append(bar);
+        const countLabel = document.createElement('span'); countLabel.textContent = number(count); row.append(countLabel); ratings.append(row);
+      }
+      const comments = $('comments'); comments.replaceChildren();
+      if (!data.feedback.comments.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = '아직 입력된 의견이 없습니다.'; comments.append(empty); }
+      data.feedback.comments.forEach(item => {
+        const article = document.createElement('article'); article.className = 'comment';
+        const body = document.createElement('p'); body.textContent = item.comment;
+        const meta = document.createElement('small'); meta.textContent = `난이도 ${item.difficultyRating}/5 · ${item.platform}`;
+        article.append(body, meta); comments.append(article);
+      });
+
+      const sessionRows = $('sessionRows'); sessionRows.replaceChildren();
+      data.recentSessions.forEach(session => {
+        const tr = document.createElement('tr');
+        const received = session.receivedAt ? new Date(session.receivedAt).toLocaleString('ko-KR') : '–';
+        tr.append(cell(received), cell(session.sessionId || '–'), cell(session.platform), cell(session.appVersion || '–'), cell(`${session.completedPuzzles}/${session.startedPuzzles}`), cell(session.totalMinutes == null ? '–' : `${number(session.totalMinutes, 1)}분`), cell(endingNames[session.endingType] || '–'), cell(session.isFinal ? '완료' : '진행 중'));
+        sessionRows.append(tr);
+      });
+      $('sessionEmpty').hidden = sessionRows.children.length > 0;
+    }
+
+    async function loadReport(showStatus = true) {
+      if (showStatus) $('status').textContent = '갱신 중…';
+      try {
+        const response = await fetch('/v1/playtest-report/data', { cache: 'no-store' });
+        if (response.status === 404) { location.reload(); return; }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        render(await response.json());
+        if (showStatus) $('status').textContent = '최신 데이터로 갱신했습니다.';
+      } catch (error) {
+        $('status').textContent = `데이터를 불러오지 못했습니다: ${error.message}`;
+      }
+    }
+    $('refresh').addEventListener('click', () => loadReport(true));
+    loadReport(false);
+    setInterval(() => loadReport(false), 60000);
+  </script>
+{% endif %}
+</body>
+</html>

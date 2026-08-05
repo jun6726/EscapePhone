@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "storageKey": "escape_phone_game_progress_v1",
+  "targetPlayTimeMinutes": {"minimum": 25, "maximum": 35},
+  "screenFlow": ["main_menu","intro","phone_home","messenger_puzzle","flashlight_puzzle","encrypted_note_screen","audio_record_puzzle","commit_graph_puzzle","access_log_puzzle","server_console","final_decision","ending"],
+  "utilityScreens": ["settings","device_analytics"],
+  "gameStages": ["notStarted","introCompleted","messengerSolved","flashlightSolved","encryptedNoteSolved","audioRecordSolved","commitGraphSolved","accessLogSolved","gameCompleted"],
+  "story": [
+    "NOVACODE는 출시 예정 앱 Trace로 사용자 행동 데이터를 동의 없이 수집하려 한다.",
+    "개발자 한도윤은 출시 전 코드 검토 중 불법 수집 기능을 발견하지만 커밋 418에서 작성자 정보가 한도윤으로 조작된다.",
+    "analytics 브랜치의 커밋 417이 백그라운드 수집을 활성화했고 커밋 420에서 출시 빌드에 병합됐다.",
+    "팀장 강민석은 범인처럼 보이지만 실제로는 출시 전 원상 복구를 지시했다.",
+    "실제 조작은 CTO 회의실 관리자 단말기와 ROOT-M 공용 관리자 계정에서 이루어졌다.",
+    "한도윤은 증거 삭제를 막기 위해 실종을 계획하고 신뢰할 수 있는 누군가에게 복구 퍼즐을 남겼다."
+  ],
+  "puzzles": {
+    "messenger_order": {
+      "messages": [
+        {"id":"message_1","sender":"도윤","body":"사진에 남긴 번호부터 확인해. 조작된 커밋을 찾을 수 있어.","displayedTime":"00:42","correctOrder":0},
+        {"id":"message_2","sender":"민서","body":"Trace의 수집 기능은 승인 기록이 없어.","displayedTime":"00:56","correctOrder":1},
+        {"id":"message_3","sender":"도윤","body":"ROOT-M 로그인과 출입 기록을 반드시 대조해.","displayedTime":"01:18","correctOrder":2},
+        {"id":"message_4","sender":"민서","body":"증거 삭제 예약 전에 복구 절차를 끝내야 해.","displayedTime":"01:24","correctOrder":3}
+      ],
+      "hints": ["메시지에 적힌 시간과 행동의 순서를 비교해 보세요.","사진 확인은 서버 기록 대조보다 먼저입니다."]
+    },
+    "flashlight_search": {
+      "digits": [4,1,7], "meaning": "manipulatedCommitNumber", "detectionRadius": 0.18, "holdDurationSeconds": 1.0, "autoCalibrateOnEntry":true, "instructionPopup":"스마트폰의 기울기에 따라서 손전등의 표시가 움직입니다. 특정 문자 위에서 1초이상 있으면 우측 상단에 기록됩니다.\n\n위에서 부터 힌트를 찾아주세요.", "instructionFontWeight":"bold", "alpha": 0.16, "maxDeltaSeconds": 0.1, "maxTiltRadians": 0.8,
+      "targets": [{"id":"target_4","digit":4,"x":0.2,"y":0.25},{"id":"target_1","digit":1,"x":0.78,"y":0.38},{"id":"target_7","digit":7,"x":0.42,"y":0.78}],
+      "motionHints": ["사진을 밝히는 방법이 화면 터치만은 아닐 수 있습니다.","휴대폰을 천천히 기울여 사진의 구석을 확인하세요."],
+      "touchHints": ["빛을 사진의 어두운 부분으로 이동해 보세요.","빛을 천천히 드래그해 사진의 구석을 확인하세요."]
+    },
+    "encrypted_note": {"unlockCode":"417","context":"Trace 출시 빌드의 상태 로그: 대상은 증거 기록, 동작은 데이터 수집, 상태는 아직 진행 중","slotFormat":["대상","동작","진행 상태"],"answerWords":["기록","수집","중"],"hints":["메모 형식은 [대상] [동작] [진행 상태]이며 빈칸은 세 칸입니다.","대상=기록, 동작=수집, 진행 상태=중이므로 ‘기록 수집 중’입니다."]},
+    "audio_record": {"fragments":["이 기능은 승인된 적이 없습니다.","이미 위에서 결정됐어.","기록을 남기면 너도 책임을 피할 수 없어.","출시 전까지 원래대로 되돌려 놔."],"usesMicrophone":false,"hints":["승인 여부를 묻는 말이 시작입니다.","결정 → 책임 경고 → 원상 복구 지시 순서입니다."]},
+    "commit_graph": {
+      "branches":["main","release","analytics","hotfix"],
+      "commits":[{"id":"412","title":"로그인 오류 수정","branch":"main"},{"id":"414","title":"출시 후보 빌드","branch":"release"},{"id":"416","title":"센서 분석 실험","branch":"analytics"},{"id":"417","title":"백그라운드 수집 활성화","branch":"analytics"},{"id":"418","title":"작성자 정보 수정","branch":"analytics"},{"id":"420","title":"출시 빌드 병합","branch":"main"}],
+      "requiredConnections":["417->418","418->420"], "rewards":["root_m","message_0114"],
+      "hints":["실험과 수집 코드는 analytics 브랜치입니다.","417 다음 작성자 조작 418, 이후 병합 420입니다."]
+    },
+    "access_log": {
+      "answers":["없었다","예약 메시지다","관리자 공용 계정이다"], "reveal":"cto_meeting_terminal",
+      "hints":["퇴실 시각과 서버 로그인 시각을 비교하세요.","예약 전송 플래그와 ROOT-M 유형을 확인하세요."]
+    },
+    "server_code": {"answer":"417121","maximumLength":6,"components":{"417":"manipulatedCommitNumber","121":"evidenceDeletionScheduledAt0121"}}
+  },
+  "endingTypes": ["publicDisclosure","encryptedArchive"],
+  "playtestAnalytics": {
+    "storage": "consentedRemoteWithLocalRetryQueue",
+    "schemaVersion": 1,
+    "consentVersion": 1,
+    "retainedSessions": 20,
+    "maximumPendingUploads": 20,
+    "uploadTiming": ["afterPuzzleCompletionIdleDelay","afterFinalFeedback","onAppBackground","retryAfterNextResume","manualRetryFromDeviceAnalytics"],
+    "localDiagnostics": ["consentStatus","anonymousSessionId","puzzleAnalytics","pendingAnalyticsUploads","analyticsUploadSequence","lastAnalyticsUploadAt","lastAnalyticsUploadError","jsonPreview"],
+    "identity": "randomPerGameAnonymousSessionId",
+    "puzzleFields": ["elapsedMs","sessionCount","wrongAttemptCount","wrongReasonCounts","hintViewCount","exitEvents"],
+    "exitReasons": ["backNavigation","appBackgroundOrClosed"],
+    "feedback": {"difficultyMinimum":1,"difficultyMaximum":5,"commentMaximumLength":1000},
+    "excludedPersonalData": ["account","location","photos","contacts","microphone","advertisingIdentifier"]
+  }
+}
