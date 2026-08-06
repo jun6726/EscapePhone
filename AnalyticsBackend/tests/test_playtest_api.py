@@ -110,6 +110,60 @@ class PlaytestApiTests(unittest.TestCase):
         self.assertEqual(encrypted_note['startedCount'], 1)
         self.assertEqual(encrypted_note['completedCount'], 1)
 
+    def test_receive_playtest_event_accepts_convenience_store_theme(self):
+        payload = self.payload()
+        payload['themeId'] = 'convenience_store_loop'
+        payload['report']['puzzleAnalytics'] = {
+            'receipt_price': {
+                'puzzleId': 'receipt_price',
+                'elapsedMs': 5000,
+                'wrongAttemptCount': 0,
+                'wrongReasonCounts': {},
+                'hintViewCount': 0,
+                'exitEvents': [],
+                'completedAt': 1_700_000_005_000,
+            }
+        }
+        response = self.client.post('/v1/playtest-events', json=payload)
+        self.assertEqual(response.status_code, 202)
+
+    def test_receive_playtest_event_rejects_theme_puzzle_mismatch(self):
+        payload = self.payload()
+        payload['themeId'] = 'convenience_store_loop'
+        # encrypted_note는 the_last_commit 전용 퍼즐이므로 convenience_store_loop에서는 거부되어야 한다.
+        response = self.client.post('/v1/playtest-events', json=payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_playtest_report_data_aggregates_by_theme(self):
+        payload = self.payload()
+        payload['themeId'] = 'convenience_store_loop'
+        payload['report']['puzzleAnalytics'] = {
+            'receipt_price': {
+                'puzzleId': 'receipt_price',
+                'elapsedMs': 5000,
+                'wrongAttemptCount': 1,
+                'wrongReasonCounts': {'receiptAnomalyIncorrect': 1},
+                'hintViewCount': 2,
+                'exitEvents': [],
+                'completedAt': 1_700_000_005_000,
+            }
+        }
+        self.client.post('/v1/playtest-events', json=payload)
+
+        response = self.client.get(
+            '/v1/playtest-report/data',
+            headers={'X-Admin-Token': 'test-admin-token'},
+        )
+        self.assertEqual(response.status_code, 200)
+        report = response.get_json()
+        theme = next(item for item in report['themes'] if item['themeId'] == 'convenience_store_loop')
+        self.assertEqual(theme['totalSessions'], 1)
+        receipt = next(item for item in theme['puzzles'] if item['puzzleId'] == 'receipt_price')
+        self.assertEqual(receipt['startedCount'], 1)
+        self.assertEqual(receipt['completedCount'], 1)
+        last_commit_theme = next(item for item in report['themes'] if item['themeId'] == 'the_last_commit')
+        self.assertEqual(last_commit_theme['totalSessions'], 0)
+
     def test_playtest_report_login_sets_secure_session_cookie(self):
         response = self.client.post(
             '/playtest-report',

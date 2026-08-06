@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var app: AppContainer
+    @Environment(\.dismiss) private var dismiss
     var body: some View {
         Form {
             Section("손전등 조작") {
@@ -17,6 +18,16 @@ struct SettingsView: View {
                 else { Button("익명 분석 수집 동의") { app.grantAnalyticsConsent() } }
             }
             Section("버전") { LabeledContent("The Last Commit", value: "1.2") }
-        }.navigationTitle("설정")
+        }
+        .navigationTitle("설정")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+        }
     }
 }

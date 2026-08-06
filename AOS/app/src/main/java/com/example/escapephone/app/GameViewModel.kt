@@ -138,7 +138,7 @@ class GameViewModel(
         activePuzzleId = null; activePuzzleStartedAt = null; save()
     }
     fun submitPlayerFeedback(difficultyRating: Int, comment: String): Boolean { if (!isAnalyticsConsentGranted || difficultyRating !in 1..5) return false; gameProgress = gameProgress.copy(playerFeedback = PlayerFeedback(difficultyRating, comment.trim().take(1000), timeProvider.now())); enqueueAnalyticsUpload(isFinal = true, delayMs = 0); save(); return true }
-    fun exportPlaytestReport(): String = Json { prettyPrint = true }.encodeToString(PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType, gameProgress.puzzleAnalytics, gameProgress.playerFeedback))
+    fun exportPlaytestReport(): String = Json { prettyPrint = true }.encodeToString(PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType?.name, gameProgress.puzzleAnalytics, gameProgress.playerFeedback))
     fun showHint(text: String) { _uiState.update { it.copy(hintText = text) } }
     fun clearHint() { _uiState.update { it.copy(hintText = null) } }
     fun updateFlashlightPosition(x: Float, y: Float, deltaTime: Double = 0.05) {
@@ -179,12 +179,12 @@ class GameViewModel(
     }
     private fun publishServerCode() { _uiState.update { it.copy(serverCodeInput = serverEngine.serverCodeInput) } }
     private fun updatePuzzleAnalytics(puzzleId: String, transform: (PuzzleAnalytics) -> PuzzleAnalytics) { val current = gameProgress.puzzleAnalytics[puzzleId] ?: PuzzleAnalytics(puzzleId); gameProgress = gameProgress.copy(puzzleAnalytics = gameProgress.puzzleAnalytics + (puzzleId to transform(current))) }
-    private fun archivedHistory(): List<PlaytestReport> { val current = if (gameProgress.startedAt != null && gameProgress.puzzleAnalytics.isNotEmpty()) PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType, gameProgress.puzzleAnalytics, gameProgress.playerFeedback) else null; return (gameProgress.playtestHistory + listOfNotNull(current)).takeLast(20) }
+    private fun archivedHistory(): List<PlaytestReport> { val current = if (gameProgress.startedAt != null && gameProgress.puzzleAnalytics.isNotEmpty()) PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType?.name, gameProgress.puzzleAnalytics, gameProgress.playerFeedback) else null; return (gameProgress.playtestHistory + listOfNotNull(current)).takeLast(20) }
     private fun enqueueAnalyticsUpload(isFinal: Boolean, delayMs: Long) {
         if (!isAnalyticsConsentGranted) return
         val sessionId = gameProgress.anonymousSessionId ?: java.util.UUID.randomUUID().toString()
         val sequence = gameProgress.analyticsUploadSequence + 1
-        val report = PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType, gameProgress.puzzleAnalytics, gameProgress.playerFeedback)
+        val report = PlaytestReport(gameProgress.startedAt, gameProgress.completedAt, gameProgress.endingType?.name, gameProgress.puzzleAnalytics, gameProgress.playerFeedback)
         val envelope = PlaytestUploadEnvelope(sessionId = sessionId, sequence = sequence, platform = "android", appVersion = BuildConfig.VERSION_NAME, consentVersion = gameProgress.analyticsConsentVersion, isFinal = isFinal, createdAt = timeProvider.now(), report = report)
         val pending = PendingAnalyticsUpload("$sessionId-$sequence", envelope)
         gameProgress = gameProgress.copy(anonymousSessionId = sessionId, analyticsUploadSequence = sequence, pendingAnalyticsUploads = (gameProgress.pendingAnalyticsUploads + pending).takeLast(20)); save(); flushAnalyticsUploads(delayMs)

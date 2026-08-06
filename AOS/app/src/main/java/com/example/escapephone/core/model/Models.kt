@@ -39,7 +39,7 @@ data class PlayerFeedback(
 data class PlaytestReport(
     val sessionStartedAt: Long?,
     val completedAt: Long?,
-    val endingType: EndingType?,
+    val endingType: String?,
     val puzzleAnalytics: Map<String, PuzzleAnalytics>,
     val playerFeedback: PlayerFeedback?
 )
@@ -54,6 +54,7 @@ data class PlaytestUploadEnvelope(
     val consentVersion: Int,
     val isFinal: Boolean,
     val createdAt: Long,
+    val themeId: String = "the_last_commit",
     val report: PlaytestReport
 )
 
@@ -99,6 +100,69 @@ data class GameProgress(
 @Serializable data class AudioFragment(val id: String, val subtitle: String, val correctOrder: Int)
 @Serializable data class CommitNode(val id: String, val number: Int, val title: String, val correctBranch: String, val correctOrder: Int)
 @Serializable data class FlashlightTarget(val id: String, val digit: Int, val x: Float, val y: Float, val requiredHoldDuration: Double)
+
+@Serializable
+enum class ConvenienceStoreStage(val stageId: String) {
+    notStarted("not_started"),
+    introCompleted("intro_completed"),
+    receiptSolved("receipt_solved"),
+    barcodeSolved("barcode_solved"),
+    shelfDifferenceSolved("shelf_difference_solved"),
+    cctvSolved("cctv_solved"),
+    inventorySolved("inventory_solved"),
+    customerPatternSolved("customer_pattern_solved"),
+    timelineSolved("timeline_solved"),
+    gameCompleted("game_completed")
+}
+
+@Serializable
+enum class ConvenienceStoreEndingType { publicDisclosure, encryptedArchive }
+
+@Serializable
+enum class TiltControlMode { motion, touch }
+
+@Serializable
+data class ConvenienceStoreProgress(
+    val currentStage: ConvenienceStoreStage = ConvenienceStoreStage.notStarted,
+    val receiptSolved: Boolean = false,
+    val barcodeSolved: Boolean = false,
+    val shelfDifferenceSolved: Boolean = false,
+    val cctvSolved: Boolean = false,
+    val inventorySolved: Boolean = false,
+    val customerPatternSolved: Boolean = false,
+    val timelineSolved: Boolean = false,
+    val discoveredCodes: List<String> = emptyList(),
+    val selectedAnomalyIds: Set<String> = emptySet(),
+    val collectedEvidenceIds: Set<String> = emptySet(),
+    val hintLevels: Map<String, Int> = emptyMap(),
+    val controlMode: TiltControlMode = TiltControlMode.motion,
+    val endingType: ConvenienceStoreEndingType? = null,
+    val startedAt: Long? = null,
+    val completedAt: Long? = null,
+    val seenHintIds: Set<String> = emptySet(),
+    val puzzleAnalytics: Map<String, PuzzleAnalytics> = emptyMap(),
+    val playerFeedback: PlayerFeedback? = null,
+    val playtestHistory: List<PlaytestReport> = emptyList(),
+    val analyticsConsentStatus: AnalyticsConsentStatus = AnalyticsConsentStatus.notDetermined,
+    val analyticsConsentVersion: Int = 0,
+    val anonymousSessionId: String? = null,
+    val analyticsUploadSequence: Int = 0,
+    val pendingAnalyticsUploads: List<PendingAnalyticsUpload> = emptyList(),
+    val lastAnalyticsUploadAt: Long? = null,
+    val lastAnalyticsUploadError: String? = null
+)
+
+object ConvenienceStoreIds {
+    const val convenience_store_home = "convenience_store_home"
+    const val receipt_price = "receipt_price"
+    const val barcode_rule = "barcode_rule"
+    const val shelf_difference = "shelf_difference"
+    const val cctv_sequence = "cctv_sequence"
+    const val inventory_crosscheck = "inventory_crosscheck"
+    const val customer_pattern = "customer_pattern"
+    const val incident_timeline = "incident_timeline"
+    const val convenience_store_final_decision = "convenience_store_final_decision"
+}
 
 object GameIds {
     const val messenger_order = "messenger_order"

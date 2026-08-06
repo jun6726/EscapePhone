@@ -17,7 +17,7 @@ struct PhoneHomeView: View {
         ZStack {
             LinearGradient(colors: [AppTheme.background, Color(red: 0.04, green: 0.15, blue: 0.16)], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
             VStack(spacing: 26) {
-                HStack { VStack(alignment: .leading) { Text("GHOST OS").font(.headline.monospaced()); Text(app.gameProgress.currentStage.rawValue).font(.caption).foregroundStyle(.secondary) }; Spacer(); Image(systemName: "battery.50percent") }
+                HStack { VStack(alignment: .leading) { Text("GHOST OS").font(.headline.monospaced()); Text(app.gameProgress.currentStage.rawValue).font(.caption).foregroundStyle(AppTheme.textSecondary) }; Spacer(); Image(systemName: "battery.50percent") }
                 LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 24) {
                     ForEach(apps) { item in
                         Button {
@@ -25,17 +25,17 @@ struct PhoneHomeView: View {
                             if let route = item.route { app.navigate(route) }
                         } label: {
                             VStack(spacing: 10) {
-                                ZStack(alignment: .topTrailing) { RoundedRectangle(cornerRadius: 22).fill(AppTheme.card).frame(width: 82, height: 82).overlay(Image(systemName: item.symbol).font(.system(size: 34)).foregroundStyle(item.unlocked ? AppTheme.accent : .gray)); if !item.unlocked { Image(systemName: "lock.fill").padding(6).background(.black).clipShape(Circle()) } }
-                                Text(item.title).foregroundStyle(.white)
-                                if !item.unlocked { Text("잠김").font(.caption2).foregroundStyle(.secondary) }
+                                ZStack(alignment: .topTrailing) { RoundedRectangle(cornerRadius: 22).fill(AppTheme.card).frame(width: 82, height: 82).overlay(Image(systemName: item.symbol).font(.system(size: 34)).foregroundStyle(item.unlocked ? AppTheme.accent : AppTheme.textSecondary)); if !item.unlocked { Image(systemName: "lock.fill").padding(6).background(.black).clipShape(Circle()) } }
+                                Text(item.title).foregroundStyle(AppTheme.textPrimary)
+                                if !item.unlocked { Text("잠김").font(.caption2).foregroundStyle(AppTheme.textSecondary) }
                             }.frame(maxWidth: .infinity)
                         }.accessibilityLabel(item.unlocked ? item.title : "\(item.title), 잠김, \(item.reason)")
                     }
                 }
                 Spacer()
-                Text("증거 수집 \(app.gameProgress.collectedEvidenceIds.count)개").font(.footnote.monospaced()).foregroundStyle(.secondary)
+                Text("증거 수집 \(app.gameProgress.collectedEvidenceIds.count)개").font(.footnote.monospaced()).foregroundStyle(AppTheme.textSecondary)
             }.padding(24)
-        }.navigationTitle("휴대폰")
+        }.navigationBarTitleDisplayMode(.inline)
     }
 }
 

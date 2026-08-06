@@ -35,7 +35,7 @@ struct PlayerFeedback: Codable, Equatable {
 struct PlaytestReport: Codable, Equatable {
     let sessionStartedAt: Date?
     let completedAt: Date?
-    let endingType: EndingType?
+    let endingType: String?
     let puzzleAnalytics: [String: PuzzleAnalytics]
     let playerFeedback: PlayerFeedback?
 }
@@ -49,6 +49,7 @@ struct PlaytestUploadEnvelope: Codable, Equatable {
     let consentVersion: Int
     let isFinal: Bool
     let createdAt: Date
+    var themeId: String = "the_last_commit"
     let report: PlaytestReport
 }
 
@@ -155,6 +156,64 @@ struct ServerCodeEngine {
     mutating func clearServerCode() { clear() }
     func submitServerCode() -> ServerCodeResult { submit() }
     func submit() -> ServerCodeResult { input.count < 6 ? .incomplete : (isServerCodeValid ? .success : .incorrect) }
+}
+
+enum ConvenienceStoreStage: String, Codable, CaseIterable {
+    case notStarted = "not_started"
+    case introCompleted = "intro_completed"
+    case receiptSolved = "receipt_solved"
+    case barcodeSolved = "barcode_solved"
+    case shelfDifferenceSolved = "shelf_difference_solved"
+    case cctvSolved = "cctv_solved"
+    case inventorySolved = "inventory_solved"
+    case customerPatternSolved = "customer_pattern_solved"
+    case timelineSolved = "timeline_solved"
+    case gameCompleted = "game_completed"
+}
+
+enum ConvenienceStoreEndingType: String, Codable, CaseIterable { case publicDisclosure, encryptedArchive }
+enum TiltControlMode: String, Codable, CaseIterable { case motion, touch }
+
+struct ConvenienceStoreProgress: Codable, Equatable {
+    var currentStage: ConvenienceStoreStage = .notStarted
+    var receiptSolved = false
+    var barcodeSolved = false
+    var shelfDifferenceSolved = false
+    var cctvSolved = false
+    var inventorySolved = false
+    var customerPatternSolved = false
+    var timelineSolved = false
+    var discoveredCodes: [String] = []
+    var selectedAnomalyIds: Set<String> = []
+    var collectedEvidenceIds: Set<String> = []
+    var hintLevels: [String: Int] = [:]
+    var controlMode: TiltControlMode = .motion
+    var endingType: ConvenienceStoreEndingType?
+    var startedAt: Date?
+    var completedAt: Date?
+    var seenHintIds: Set<String> = []
+    var puzzleAnalytics: [String: PuzzleAnalytics] = [:]
+    var playerFeedback: PlayerFeedback?
+    var playtestHistory: [PlaytestReport] = []
+    var analyticsConsentStatus: AnalyticsConsentStatus = .notDetermined
+    var analyticsConsentVersion = 0
+    var anonymousSessionId: String?
+    var analyticsUploadSequence = 0
+    var pendingAnalyticsUploads: [PendingAnalyticsUpload] = []
+    var lastAnalyticsUploadAt: Date?
+    var lastAnalyticsUploadError: String?
+}
+
+enum ConvenienceStoreIds {
+    static let convenience_store_home = "convenience_store_home"
+    static let receipt_price = "receipt_price"
+    static let barcode_rule = "barcode_rule"
+    static let shelf_difference = "shelf_difference"
+    static let cctv_sequence = "cctv_sequence"
+    static let inventory_crosscheck = "inventory_crosscheck"
+    static let customer_pattern = "customer_pattern"
+    static let incident_timeline = "incident_timeline"
+    static let convenience_store_final_decision = "convenience_store_final_decision"
 }
 
 enum GameIds {

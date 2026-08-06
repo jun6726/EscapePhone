@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,7 +57,22 @@ import com.example.escapephone.designsystem.*
     val pulse by rememberInfiniteTransition(label = "wave").animateFloat(.25f, 1f, infiniteRepeatable(tween(500), RepeatMode.Reverse), label = "wavePulse")
     PuzzleColumn("손상된 음성 기록", viewModel::handleBackNavigation) {
         Text("실제 마이크를 사용하지 않습니다. 조각을 재생해 자막의 대화 흐름을 복원하세요.", color = TextSecondary)
-        engine.fragments.forEachIndexed { index, fragment -> Card(colors = CardDefaults.cardColors(containerColor = Surface)) { Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Row(Modifier.width(62.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) { repeat(6) { bar -> Box(Modifier.width(5.dp).height(if (engine.playingFragmentId == fragment.id) (10 + bar * pulse * 4).dp else 8.dp).background(Primary)) } }; Column(Modifier.weight(1f)) { Text("조각 ${index + 1}", fontWeight = FontWeight.Bold); Text(fragment.subtitle) }; Column { TextButton({ engine.playAudioFragment(fragment.id); revision++ }) { Text("▶") }; TextButton({ engine.moveAudioFragmentUp(index); revision++ }, enabled = index > 0) { Text("▲") }; TextButton({ engine.moveAudioFragmentDown(index); revision++ }, enabled = index < engine.fragments.lastIndex) { Text("▼") } } } }; Spacer(Modifier.height(8.dp)) }
+        ReorderableList(
+            items = engine.fragments,
+            itemId = { it.id },
+            enabled = !engine.isSolved,
+            onReorder = { reordered -> syncAudioFragmentOrder(engine, reordered.map { it.id }); revision++ }
+        ) { fragment, proxy ->
+            val index = engine.fragments.indexOfFirst { it.id == fragment.id }
+            Card(colors = CardDefaults.cardColors(containerColor = Surface)) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(62.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) { repeat(6) { bar -> Box(Modifier.width(5.dp).height(if (engine.playingFragmentId == fragment.id) (10 + bar * pulse * 4).dp else 8.dp).background(Primary)) } }
+                    Column(Modifier.weight(1f)) { Text("조각 ${index + 1}", fontWeight = FontWeight.Bold); Text(fragment.subtitle) }
+                    TextButton({ engine.playAudioFragment(fragment.id); revision++ }) { Text("▶") }
+                    ReorderControls(proxy)
+                }
+            }
+        }
         FullButton("음성 순서 확인") { if (engine.submitAudioOrder()) viewModel.completeAudioRecordPuzzle() else { error = true; viewModel.recordWrongAttempt("audio_record", "audioOrderIncorrect") }; revision++ }
         if (error) Text("대화의 원인과 반응 순서를 다시 확인하세요.", color = Error)
         if (state.gameProgress.audioRecordSolved) { Text("✓ 복원 완료 · 강민석은 원상 복구를 지시했다", color = Success); FullButton("커밋 그래프 열기") { viewModel.navigate(Screen.commitGraphPuzzle) } }
@@ -69,7 +85,23 @@ import com.example.escapephone.designsystem.*
     val engine = remember { CommitGraphPuzzleEngine() }; var revision by remember { mutableIntStateOf(0) }; var hint by remember { mutableIntStateOf(0) }; var error by remember { mutableStateOf(false) }
     PuzzleColumn("커밋 그래프 복구", viewModel::handleBackNavigation) {
         Text("노드를 올바른 브랜치에 배치하고 핵심 조작 흐름을 연결하세요.", color = TextSecondary)
-        engine.nodeOrder.forEachIndexed { orderIndex, nodeId -> val node = engine.nodes.first { it.id == nodeId }; Card(colors = CardDefaults.cardColors(containerColor = Surface)) { Column(Modifier.fillMaxWidth().padding(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text("${node.number}  ${node.title}", Modifier.weight(1f), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace); TextButton({ engine.moveCommitNode(node.id, (orderIndex - 1).coerceAtLeast(0)); revision++ }, enabled = orderIndex > 0) { Text("▲") }; TextButton({ engine.moveCommitNode(node.id, (orderIndex + 1).coerceAtMost(engine.nodeOrder.lastIndex)); revision++ }, enabled = orderIndex < engine.nodeOrder.lastIndex) { Text("▼") } }; Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { engine.branches.forEach { branch -> FilterChip(engine.placements[node.id] == branch, { engine.moveCommitNode(node.id, branch); revision++ }, { Text(branch, fontSize = 10.sp) }) } } } }; Spacer(Modifier.height(7.dp)) }
+        val orderedNodes = engine.nodeOrder.mapNotNull { id -> engine.nodes.firstOrNull { it.id == id } }
+        ReorderableList(
+            items = orderedNodes,
+            itemId = { it.id },
+            enabled = !engine.isSolved,
+            onReorder = { reordered -> syncCommitNodeOrder(engine, reordered.map { it.id }); revision++ }
+        ) { node, proxy ->
+            Card(colors = CardDefaults.cardColors(containerColor = Surface)) {
+                Column(Modifier.fillMaxWidth().padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("${node.number}  ${node.title}", Modifier.weight(1f), fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        ReorderControls(proxy)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { engine.branches.forEach { branch -> FilterChip(engine.placements[node.id] == branch, { engine.moveCommitNode(node.id, branch); revision++ }, { Text(branch, fontSize = 10.sp) }) } }
+                }
+            }
+        }
         Row { OutlinedButton({ engine.connectCommitNode("417", "418"); revision++ }) { Text("417 → 418") }; Spacer(Modifier.width(8.dp)); OutlinedButton({ engine.connectCommitNode("418", "420"); revision++ }) { Text("418 → 420") } }
         Text("연결: ${engine.connections.joinToString()}", color = TextSecondary, fontFamily = FontFamily.Monospace)
         FullButton("그래프 검증") { if (engine.submitCommitGraph()) viewModel.completeCommitGraphPuzzle() else { error = true; val reason = when { engine.nodes.any { engine.placements[it.id] != it.correctBranch } -> "commitBranchIncorrect"; engine.nodeOrder != engine.nodes.sortedBy { it.correctOrder }.map { it.id } -> "commitOrderIncorrect"; else -> "commitConnectionMissing" }; viewModel.recordWrongAttempt("commit_graph", reason) }; revision++ }
@@ -104,7 +136,57 @@ import com.example.escapephone.designsystem.*
     }
 }
 
-@Composable private fun PuzzleColumn(title: String, onBack: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { if (onBack != null) TextButton(onBack) { Text("‹ 뒤로") }; Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold) }; content() } }
+private fun syncAudioFragmentOrder(engine: AudioRecordPuzzleEngine, targetOrder: List<String>) {
+    if (engine.fragments.map { it.id } == targetOrder) return
+    val maxIterations = targetOrder.size * targetOrder.size
+    var iterations = 0
+    while (engine.fragments.map { it.id } != targetOrder && iterations < maxIterations) {
+        iterations++
+        val liveOrder = engine.fragments.map { it.id }
+        val mismatchIndex = liveOrder.indices.firstOrNull { liveOrder[it] != targetOrder[it] } ?: break
+        val targetId = targetOrder[mismatchIndex]
+        val currentIndex = liveOrder.indexOf(targetId)
+        if (currentIndex < 0) break
+        if (currentIndex > mismatchIndex) engine.moveAudioFragmentUp(currentIndex) else engine.moveAudioFragmentDown(currentIndex)
+    }
+}
+
+private fun syncCommitNodeOrder(engine: CommitGraphPuzzleEngine, targetOrder: List<String>) {
+    if (engine.nodeOrder == targetOrder) return
+    val maxIterations = targetOrder.size * targetOrder.size
+    var iterations = 0
+    while (engine.nodeOrder != targetOrder && iterations < maxIterations) {
+        iterations++
+        val liveOrder = engine.nodeOrder
+        val mismatchIndex = liveOrder.indices.firstOrNull { liveOrder[it] != targetOrder[it] } ?: break
+        val targetId = targetOrder[mismatchIndex]
+        val currentIndex = liveOrder.indexOf(targetId)
+        if (currentIndex < 0) break
+        val direction = if (currentIndex > mismatchIndex) -1 else 1
+        engine.moveCommitNode(targetId, (currentIndex + direction).coerceIn(0, engine.nodeOrder.lastIndex))
+    }
+}
+
+@Composable private fun PuzzleColumn(title: String, onBack: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    var isReorderDragging by remember { mutableStateOf(false) }
+    var contentHeightPx by remember { mutableIntStateOf(0) }
+    var viewportHeightPx by remember { mutableIntStateOf(0) }
+    val scrollNeeded = contentHeightPx > viewportHeightPx
+    CompositionLocalProvider(LocalReorderDragReporter provides { isReorderDragging = it }) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .onSizeChanged { viewportHeightPx = it.height }
+                .verticalScroll(rememberScrollState(), enabled = scrollNeeded && !isReorderDragging)
+                .padding(20.dp)
+                .onSizeChanged { contentHeightPx = it.height },
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) { if (onBack != null) TextButton(onBack) { Text("‹ 뒤로") }; Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold) }
+            content()
+        }
+    }
+}
 @Composable private fun FullButton(text: String, enabled: Boolean = true, action: () -> Unit) { Button(action, Modifier.fillMaxWidth().height(52.dp), enabled = enabled, shape = RoundedCornerShape(16.dp)) { Text(text, fontWeight = FontWeight.Bold) } }
 @Composable private fun FlowWords(words: List<String>, action: (String) -> Unit) { Column { words.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { word -> OutlinedButton({ action(word) }) { Text(word) } } } } } }
 @Composable private fun HintButton(id: String, current: Int, update: (Int) -> Unit, viewModel: GameViewModel, hints: List<String>) { Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) { hints.take(current).forEachIndexed { index, text -> Card(colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = .12f))) { Text("힌트 ${index + 1}. $text", Modifier.fillMaxWidth().padding(12.dp)) } }; TextButton({ val next = (current + 1).coerceAtMost(2); update(next); viewModel.requestHint("$id.$next", hints[next - 1]) }, enabled = current < 2) { Text(if (current == 0) "힌트 1 공개" else if (current == 1) "힌트 2 공개" else "힌트 모두 확인함") } } }

@@ -79,22 +79,25 @@ import kotlinx.coroutines.launch
     if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.notDetermined) AnalyticsConsentDialog(viewModel::grantAnalyticsConsent, viewModel::denyAnalyticsConsent)
 }
 
-@Composable fun MainMenuScreen(viewModel: GameViewModel) {
+@Composable fun MainMenuScreen(viewModel: GameViewModel, onBackToThemeSelection: (() -> Unit)? = null) {
     var confirmNew by remember { mutableStateOf(false) }; var confirmReset by remember { mutableStateOf(false) }; var about by remember { mutableStateOf(false) }; var taps by remember { mutableIntStateOf(0) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("⌁", fontSize = 72.sp, color = Primary)
-        Text("THE LAST COMMIT", fontSize = 34.sp, lineHeight = 38.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Text("사라진 개발자의 휴대폰", color = TextSecondary)
-        Text("SYSTEM // RECOVERY MODE", color = Primary, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(vertical = 24.dp).clickable { if (BuildConfig.DEBUG && ++taps >= 5) { taps = 0; viewModel.navigate(Screen.developerMenu) } })
-        PrimaryAction("새 게임") { if (viewModel.hasSavedGame()) confirmNew = true else viewModel.startNewGame() }
-        Spacer(Modifier.height(10.dp)); PrimaryAction("이어하기", viewModel.hasSavedGame(), viewModel::continueGame)
-        Spacer(Modifier.height(10.dp)); SecondaryAction("설정") { viewModel.navigate(Screen.settings) }; SecondaryAction("게임 소개") { about = true }
-        if (viewModel.hasSavedGame()) TextButton(onClick = { confirmReset = true }) { Text("게임 초기화", color = Error) }
-        Text("25–35분 · 익명 분석 선택 · 센서 또는 터치", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("⌁", fontSize = 72.sp, color = Primary)
+            Text("THE LAST COMMIT", fontSize = 34.sp, lineHeight = 38.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("사라진 개발자의 휴대폰", color = TextSecondary)
+            Text("SYSTEM // RECOVERY MODE", color = Primary, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(vertical = 24.dp).clickable { if (BuildConfig.DEBUG && ++taps >= 5) { taps = 0; viewModel.navigate(Screen.developerMenu) } })
+            PrimaryAction("새 게임") { if (viewModel.hasSavedGame()) confirmNew = true else viewModel.startNewGame() }
+            Spacer(Modifier.height(10.dp)); PrimaryAction("이어하기", viewModel.hasSavedGame(), viewModel::continueGame)
+            Spacer(Modifier.height(10.dp)); SecondaryAction("설정") { viewModel.navigate(Screen.settings) }; SecondaryAction("게임 소개") { about = true }
+            if (viewModel.hasSavedGame()) DesignGhostAction("게임 초기화", color = Error) { confirmReset = true }
+            Text("25–35분 · 익명 분석 선택 · 센서 또는 터치", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        }
+        if (onBackToThemeSelection != null) BackToThemeSelectionButton(onBackToThemeSelection, Modifier.align(Alignment.TopStart).padding(20.dp))
     }
-    if (confirmNew) ConfirmDialog("저장된 진행을 지우고 새 게임을 시작할까요?", { confirmNew = false }, { confirmNew = false; viewModel.startNewGame() })
-    if (confirmReset) ConfirmDialog("모든 진행 정보를 삭제할까요?", { confirmReset = false }, { confirmReset = false; viewModel.reset() })
-    if (about) AlertDialog(onDismissRequest = { about = false }, confirmButton = { TextButton(onClick = { about = false }) { Text("닫기") } }, title = { Text("게임 소개") }, text = { Text("출시 하루 전 사라진 개발자의 가상 휴대폰에서 손상된 기록을 복구하는 방탈출 데모입니다. 동의한 경우에만 익명 플레이 분석 JSON을 비동기로 전송합니다.") })
+    if (confirmNew) DesignConfirmDialog("새 게임", "저장된 진행을 지우고 새 게임을 시작할까요?", { confirmNew = false }, { confirmNew = false; viewModel.startNewGame() }, confirmLabel = "새 게임 시작")
+    if (confirmReset) DesignConfirmDialog("게임 초기화", "모든 진행 정보를 삭제할까요?", { confirmReset = false }, { confirmReset = false; viewModel.reset() }, confirmLabel = "초기화")
+    if (about) DesignInfoDialog("게임 소개", "출시 하루 전 사라진 개발자의 가상 휴대폰에서 손상된 기록을 복구하는 방탈출 데모입니다. 동의한 경우에만 익명 플레이 분석 JSON을 비동기로 전송합니다.") { about = false }
 }
 
 @Composable fun IntroScreen(viewModel: GameViewModel) {
@@ -118,7 +121,19 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
     var hintLevel by remember { mutableIntStateOf(0) }; var errorPulse by remember { mutableIntStateOf(0) }
     ScreenColumn("메신저 복구", viewModel::handleBackNavigation) {
         Text("손상된 대화를 시간과 내용의 흐름에 맞게 정렬하세요.", color = TextSecondary)
-        state.messages.forEachIndexed { index, message -> Card(colors = CardDefaults.cardColors(containerColor = if (errorPulse % 2 == 0) Surface else Error.copy(alpha = .16f))) { Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Row { Text(message.sender, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); Text(message.displayedTime, color = Primary, fontFamily = FontFamily.Monospace) }; Text(message.body) }; Column { TextButton(onClick = { viewModel.moveMessageUp(index) }, enabled = index > 0 && !state.isSolved, modifier = Modifier.semantics { contentDescription = "${index + 1}번 메시지를 위로 이동" }) { Text("▲") }; TextButton(onClick = { viewModel.moveMessageDown(index) }, enabled = index < state.messages.lastIndex && !state.isSolved, modifier = Modifier.semantics { contentDescription = "${index + 1}번 메시지를 아래로 이동" }) { Text("▼") } } } }; Spacer(Modifier.height(8.dp)) }
+        ReorderableList(
+            items = state.messages,
+            itemId = { it.id },
+            enabled = !state.isSolved,
+            onReorder = { reordered -> syncMessageOrder(viewModel, reordered.map { it.id }) }
+        ) { message, proxy ->
+            Card(colors = CardDefaults.cardColors(containerColor = if (errorPulse % 2 == 0) Surface else Error.copy(alpha = .16f))) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) { Row { Text(message.sender, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); Text(message.displayedTime, color = Primary, fontFamily = FontFamily.Monospace) }; Text(message.body) }
+                    ReorderControls(proxy)
+                }
+            }
+        }
         if (state.isSolved || state.gameProgress.messengerSolved) { Text("✓ 기록 복원 완료 · 사진첩 잠금 해제", color = Success); PrimaryAction("휴대폰 홈으로") { viewModel.navigate(Screen.phoneHome) } } else { PrimaryAction("순서 확인") { if (!viewModel.submitMessengerOrder()) errorPulse++ }; TextButton(onClick = { hintLevel = (hintLevel + 1).coerceAtMost(2); val text = if (hintLevel == 1) "메시지에 적힌 시간과 행동의 순서를 비교해 보세요." else "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다."; viewModel.requestHint("messenger_order.$hintLevel", text) }) { Text("힌트 보기") } }
     }
 }
@@ -165,7 +180,7 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
     ScreenColumn("서버 복구 성공") { Text("✓", color = Success, fontSize = 72.sp); Text("한도윤의 증거 복구 절차가 완료되었습니다.", fontSize = 21.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().background(Surface, RoundedCornerShape(16.dp)).padding(20.dp)); InfoRow("최종 선택", if (state.gameProgress.endingType == com.example.escapephone.core.model.EndingType.publicDisclosure) "외부 감사 서버 공개" else "암호화 보관"); InfoRow("수집 증거", "${state.gameProgress.collectedEvidenceIds.size}개"); InfoRow("총 플레이 시간", duration); InfoRow("힌트 사용", "${state.gameProgress.hintCount}회"); InfoRow("손전등 조작", if (state.gameProgress.controlMode == FlashlightControlMode.motion) "기울기" else "터치"); HorizontalDivider(); Text("플레이 경험을 알려주세요", fontWeight = FontWeight.Bold); if (!analyticsEnabled) Text("설정에서 익명 분석 수집에 동의하면 난이도와 의견을 보낼 수 있습니다.", color = TextSecondary); Text("난이도 · 1 매우 쉬움 / 5 매우 어려움", color = TextSecondary); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { (1..5).forEach { value -> FilterChip(difficulty == value, { difficulty = value; saved = false }, { Text(value.toString()) }, enabled = analyticsEnabled) } }; OutlinedTextField(feedback, { feedback = it.take(1000); saved = false }, Modifier.fillMaxWidth(), enabled = analyticsEnabled, label = { Text("불편했던 점이나 개선 의견") }, minLines = 3, supportingText = { Text("${feedback.length}/1000") }); PrimaryAction(if (saved) "피드백 저장 완료" else "피드백 저장", analyticsEnabled && difficulty in 1..5 && !saved) { saved = viewModel.submitPlayerFeedback(difficulty, feedback) }; Text(if (BuildConfig.PLAYTEST_ANALYTICS_ENDPOINT.isBlank()) "서버가 설정되지 않아 분석 JSON을 암호화된 앱 저장소에 보관합니다." else "분석 JSON은 화면 로딩을 막지 않고 비동기로 전송됩니다.", color = TextSecondary, style = MaterialTheme.typography.bodySmall); if (analyticsEnabled) SecondaryAction("익명 분석 보고서 공유") { val intent = Intent(Intent.ACTION_SEND).apply { type = "application/json"; putExtra(Intent.EXTRA_TEXT, viewModel.exportPlaytestReport()) }; context.startActivity(Intent.createChooser(intent, "플레이테스트 보고서 공유")) }; PrimaryAction("다시 플레이", action = viewModel::startNewGame); SecondaryAction("첫 화면으로 이동") { viewModel.navigate(Screen.mainMenu) } }
 }
 
-@Composable fun SettingsScreen(state: GameUiState, viewModel: GameViewModel) { ScreenColumn("설정", { viewModel.navigate(Screen.mainMenu) }) { Text("손전등 조작", fontWeight = FontWeight.Bold); Row { FilterChip(state.gameProgress.controlMode == FlashlightControlMode.motion, { viewModel.setControlMode(FlashlightControlMode.motion) }, { Text("기울기") }, enabled = viewModel.isAvailable); Spacer(Modifier.width(8.dp)); FilterChip(state.gameProgress.controlMode == FlashlightControlMode.touch, { viewModel.setControlMode(FlashlightControlMode.touch) }, { Text("터치") }) }; if (!viewModel.isAvailable) Text("현재 환경에서는 기울기 센서를 사용할 수 없습니다.", color = TextSecondary); HorizontalDivider(); Text("익명 플레이 분석", fontWeight = FontWeight.Bold); Text("퍼즐별 시간·오답 원인·힌트·이탈과 선택 입력한 피드백만 JSON으로 수집합니다. 계정, 위치, 사진, 연락처, 마이크와 광고 식별자는 포함하지 않습니다."); Text("현재 상태: ${if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.granted) "동의함" else "동의하지 않음"} · 대기 ${state.gameProgress.pendingAnalyticsUploads.size}건", color = TextSecondary); OutlinedButton({ viewModel.navigate(Screen.deviceAnalytics) }) { Text("기기 분석 데이터 보기") }; if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.granted) OutlinedButton(viewModel::denyAnalyticsConsent) { Text("동의 철회 및 기기 내 분석 데이터 삭제") } else Button(viewModel::grantAnalyticsConsent) { Text("익명 분석 수집 동의") }; Text("The Last Commit 1.2", color = TextSecondary) } }
+@Composable fun SettingsScreen(state: GameUiState, viewModel: GameViewModel, onBack: (() -> Unit)? = null) { ScreenColumn("설정", onBack ?: { viewModel.navigate(Screen.mainMenu) }, centerTitle = true) { Text("손전등 조작", fontWeight = FontWeight.Bold); Row { FilterChip(state.gameProgress.controlMode == FlashlightControlMode.motion, { viewModel.setControlMode(FlashlightControlMode.motion) }, { Text("기울기") }, enabled = viewModel.isAvailable); Spacer(Modifier.width(8.dp)); FilterChip(state.gameProgress.controlMode == FlashlightControlMode.touch, { viewModel.setControlMode(FlashlightControlMode.touch) }, { Text("터치") }) }; if (!viewModel.isAvailable) Text("현재 환경에서는 기울기 센서를 사용할 수 없습니다.", color = TextSecondary); HorizontalDivider(); Text("익명 플레이 분석", fontWeight = FontWeight.Bold); Text("퍼즐별 시간·오답 원인·힌트·이탈과 선택 입력한 피드백만 JSON으로 수집합니다. 계정, 위치, 사진, 연락처, 마이크와 광고 식별자는 포함하지 않습니다."); Text("현재 상태: ${if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.granted) "동의함" else "동의하지 않음"} · 대기 ${state.gameProgress.pendingAnalyticsUploads.size}건", color = TextSecondary); OutlinedButton({ viewModel.navigate(Screen.deviceAnalytics) }) { Text("기기 분석 데이터 보기") }; if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.granted) OutlinedButton(viewModel::denyAnalyticsConsent) { Text("동의 철회 및 기기 내 분석 데이터 삭제") } else Button(viewModel::grantAnalyticsConsent) { Text("익명 분석 수집 동의") }; Text("The Last Commit 1.2", color = TextSecondary) } }
 
 @Composable fun DeviceAnalyticsScreen(state: GameUiState, viewModel: GameViewModel) {
     val progress = state.gameProgress
@@ -217,7 +232,50 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
     }
 }
 
-@Composable private fun ScreenColumn(title: String, onBack: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { if (onBack != null) TextButton(onClick = onBack) { Text("‹ 뒤로") }; Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold) }; content() } }
+/** 사용자가 손을 뗀 순간의 시각적 배치를 실제 메신저 엔진 순서에 반영한다. */
+private fun syncMessageOrder(viewModel: GameViewModel, targetOrder: List<String>) {
+    val currentOrder = viewModel.uiState.value.messages.map { it.id }
+    if (currentOrder == targetOrder) return
+    val maxIterations = targetOrder.size * targetOrder.size
+    var iterations = 0
+    while (viewModel.uiState.value.messages.map { it.id } != targetOrder && iterations < maxIterations) {
+        iterations++
+        val liveOrder = viewModel.uiState.value.messages.map { it.id }
+        val mismatchIndex = liveOrder.indices.firstOrNull { liveOrder[it] != targetOrder[it] } ?: break
+        val targetId = targetOrder[mismatchIndex]
+        val currentIndex = liveOrder.indexOf(targetId)
+        if (currentIndex < 0) break
+        if (currentIndex > mismatchIndex) viewModel.moveMessageUp(currentIndex) else viewModel.moveMessageDown(currentIndex)
+    }
+}
+
+@Composable private fun ScreenColumn(title: String, onBack: (() -> Unit)? = null, centerTitle: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    var isReorderDragging by remember { mutableStateOf(false) }
+    var contentHeightPx by remember { mutableIntStateOf(0) }
+    var viewportHeightPx by remember { mutableIntStateOf(0) }
+    val scrollNeeded = contentHeightPx > viewportHeightPx
+    CompositionLocalProvider(LocalReorderDragReporter provides { isReorderDragging = it }) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .onSizeChanged { viewportHeightPx = it.height }
+                .verticalScroll(rememberScrollState(), enabled = scrollNeeded && !isReorderDragging)
+                .padding(20.dp)
+                .onSizeChanged { contentHeightPx = it.height },
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (centerTitle) {
+                Box(Modifier.fillMaxWidth()) {
+                    if (onBack != null) IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Text("←", fontSize = 22.sp, color = TextPrimary) }
+                    Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) { if (onBack != null) TextButton(onClick = onBack) { Text("‹ 뒤로") }; Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold) }
+            }
+            content()
+        }
+    }
+}
 @Composable private fun PrimaryAction(text: String, enabled: Boolean = true, action: () -> Unit) { Button(action, Modifier.fillMaxWidth().height(52.dp), enabled = enabled, shape = RoundedCornerShape(16.dp)) { Text(text, fontWeight = FontWeight.Bold) } }
 @Composable private fun SecondaryAction(text: String, action: () -> Unit) { OutlinedButton(action, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text(text) } }
 @Composable private fun ConfirmDialog(text: String, cancel: () -> Unit, confirm: () -> Unit) { AlertDialog(cancel, confirmButton = { TextButton(confirm) { Text("확인", color = Error) } }, dismissButton = { TextButton(cancel) { Text("취소") } }, text = { Text(text) }) }

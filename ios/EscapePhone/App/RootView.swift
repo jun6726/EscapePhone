@@ -1,5 +1,37 @@
 import SwiftUI
 
+struct AppRootView: View {
+    @EnvironmentObject private var app: AppContainer
+    var body: some View {
+        switch app.launchRoute {
+        case .themeSelection:
+            ThemeSelectionScreen(
+                themeMetadataList: app.themeMetadataList(),
+                progressFor: { app.themeProgress(for: $0) },
+                onStartTheme: { app.startTheme($0) },
+                onContinueTheme: { app.continueTheme($0) },
+                onOpenSettings: { app.openThemeSettings() },
+                onResetAll: { app.resetAllThemeProgress() }
+            )
+            .id(app.themeProgressVersion)
+        case .themeMainMenu(let themeId):
+            ThemeMainMenuScreen(
+                themeId: themeId,
+                themeMetadata: ThemeRegistry.metadata(for: themeId),
+                themeProgress: app.themeProgress(for: themeId),
+                onBackToThemeSelection: { app.returnToThemeSelection() },
+                convenienceStoreContainer: app.convenienceStoreContainer,
+                onResetTheme: { app.themeProgressVersion += 1 },
+                onEnterConvenienceStore: { app.enterConvenienceStore() }
+            )
+        case .convenienceStorePlaying:
+            ConvenienceStoreApp(container: app.convenienceStoreContainer, onExitToThemeMenu: { app.themeProgressVersion += 1; app.launchRoute = .themeMainMenu(.convenienceStoreLoop) })
+        case .theLastCommit:
+            RootView()
+        }
+    }
+}
+
 struct RootView: View {
     @EnvironmentObject private var app: AppContainer
     var body: some View {

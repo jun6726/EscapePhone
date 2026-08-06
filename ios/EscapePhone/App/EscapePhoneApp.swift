@@ -6,9 +6,10 @@ struct EscapePhoneApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
-        WindowGroup { RootView().environmentObject(container) }
+        WindowGroup { AppRootView().environmentObject(container) }
             .onChange(of: scenePhase) { _, phase in
                 container.handleScenePhase(phase)
+                container.convenienceStoreContainer.handleScenePhaseChange(active: phase == .active)
             }
     }
 }

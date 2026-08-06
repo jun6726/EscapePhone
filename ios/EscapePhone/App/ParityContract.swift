@@ -55,14 +55,56 @@ struct EncryptedNoteView: View {
 
 struct AudioRecordPuzzleView: View {
     @EnvironmentObject var app: AppContainer; @State var engine = AudioRecordPuzzleEngine(); @State var error = false
-    var body: some View { PuzzleContainer("손상된 음성 기록") { Text("마이크를 사용하지 않습니다. 파형과 자막을 정렬하세요.").foregroundStyle(.secondary); ForEach(Array(engine.fragments.enumerated()), id: \.element.id) { index, fragment in HStack(spacing: 8) { Button("▶") { engine.playAudioFragment(fragment.id) }.frame(width: 38); Image(systemName: "waveform").foregroundStyle(AppTheme.accent); Text(fragment.subtitle).font(.callout).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading); DragReorderHandle(itemId: fragment.id, currentIndex: index, itemCount: engine.fragments.count, enabled: !engine.isSolved) { direction in moveAudio(fragment.id, direction: direction) } }.padding(.horizontal, 12).frame(minHeight: 62).background(AppTheme.card).clipShape(RoundedRectangle(cornerRadius: 14)) }; Button("음성 순서 확인") { if engine.submitAudioOrder() { app.completeAudioRecordPuzzle() } else { error = true; app.recordWrongAttempt("audio_record", reason: "audioOrderIncorrect") } }.buttonStyle(PrimaryButtonStyle()); if error { Text("대화 순서를 다시 확인하세요.").foregroundStyle(.red) }; if app.gameProgress.audioRecordSolved { Button("커밋 그래프 열기") { app.navigate(.commitGraphPuzzle) }.buttonStyle(PrimaryButtonStyle()) }; HintPair("audio_record", ["승인 여부를 묻는 말이 시작입니다.", "결정 → 경고 → 원상 복구 지시 순서입니다."]) } }
-    private func moveAudio(_ fragmentId: String, direction: Int) { guard let index = engine.fragments.firstIndex(where: { $0.id == fragmentId }) else { return }; app.haptics.play(.selection); if direction < 0 { engine.moveAudioFragmentUp(index) } else { engine.moveAudioFragmentDown(index) } }
+    @State private var orderedFragments: [AudioFragment] = []
+    var body: some View { PuzzleContainer("손상된 음성 기록") {
+        Text("마이크를 사용하지 않습니다. 파형과 자막을 정렬하세요.").foregroundStyle(.secondary)
+        ReorderableList(items: $orderedFragments, enabled: !engine.isSolved) { fragment, proxy in
+            HStack(spacing: 8) { Button("▶") { engine.playAudioFragment(fragment.id) }.frame(width: 38); Image(systemName: "waveform").foregroundStyle(AppTheme.accent); Text(fragment.subtitle).font(.callout).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading); ReorderControls(enabled: !engine.isSolved, proxy: proxy) }.padding(.horizontal, 12).frame(minHeight: 62).background(AppTheme.card).clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .onChange(of: orderedFragments.map(\.id)) { _, _ in syncEngineFragmentOrder() }
+        Button("음성 순서 확인") { if engine.submitAudioOrder() { app.completeAudioRecordPuzzle() } else { error = true; app.recordWrongAttempt("audio_record", reason: "audioOrderIncorrect") } }.buttonStyle(PrimaryButtonStyle()); if error { Text("대화 순서를 다시 확인하세요.").foregroundStyle(.red) }; if app.gameProgress.audioRecordSolved { Button("커밋 그래프 열기") { app.navigate(.commitGraphPuzzle) }.buttonStyle(PrimaryButtonStyle()) }; HintPair("audio_record", ["승인 여부를 묻는 말이 시작입니다.", "결정 → 경고 → 원상 복구 지시 순서입니다."])
+    }.onAppear { orderedFragments = engine.fragments } }
+    private func syncEngineFragmentOrder() {
+        let targetOrder = orderedFragments.map(\.id)
+        guard targetOrder != engine.fragments.map(\.id) else { return }
+        app.haptics.play(.selection)
+        let maxIterations = targetOrder.count * targetOrder.count
+        var iterations = 0
+        while engine.fragments.map(\.id) != targetOrder, iterations < maxIterations {
+            iterations += 1
+            guard let mismatchIndex = Array(zip(engine.fragments.map(\.id), targetOrder)).firstIndex(where: { $0 != $1 }) else { break }
+            let targetID = targetOrder[mismatchIndex]
+            guard let currentIndex = engine.fragments.firstIndex(where: { $0.id == targetID }) else { break }
+            if currentIndex > mismatchIndex { engine.moveAudioFragmentUp(currentIndex) } else { engine.moveAudioFragmentDown(currentIndex) }
+        }
+    }
 }
 
 struct CommitGraphPuzzleView: View {
     @EnvironmentObject var app: AppContainer; @State var engine = CommitGraphPuzzleEngine(); @State var error = false
-    var body: some View { PuzzleContainer("커밋 그래프 복구") { ForEach(Array(engine.nodeOrder.enumerated()), id: \.element) { index, nodeId in let node = engine.nodes.first { $0.id == nodeId }!; VStack(alignment: .leading) { HStack { Text("\(node.number) \(node.title)").bold(); Spacer(); DragReorderHandle(itemId: node.id, currentIndex: index, itemCount: engine.nodeOrder.count, enabled: !engine.isSolved) { direction in moveNode(node.id, direction: direction) } }; ScrollView(.horizontal) { HStack { ForEach(engine.branches, id: \.self) { branch in Button(branch) { engine.moveCommitNode(node.id, branch: branch) }.buttonStyle(.bordered).tint(engine.placements[node.id] == branch ? AppTheme.accent : .gray) } } } }.gameCard() }; HStack { Button("417 → 418") { engine.connectCommitNode("417", toId: "418") }; Button("418 → 420") { engine.connectCommitNode("418", toId: "420") } }; Button("그래프 검증") { if engine.submitCommitGraph() { app.completeCommitGraphPuzzle() } else { error = true; let reason = engine.nodes.contains { engine.placements[$0.id] != $0.correctBranch } ? "commitBranchIncorrect" : engine.nodeOrder != engine.nodes.sorted { $0.correctOrder < $1.correctOrder }.map(\.id) ? "commitOrderIncorrect" : "commitConnectionMissing"; app.recordWrongAttempt("commit_graph", reason: reason) } }.buttonStyle(PrimaryButtonStyle()); if error { Text("브랜치·순서·연결을 확인하세요.").foregroundStyle(.red) }; if app.gameProgress.commitGraphSolved { Button("접근 로그 열기") { app.navigate(.accessLogPuzzle) }.buttonStyle(PrimaryButtonStyle()) }; HintPair("commit_graph", ["실험과 수집 코드는 analytics입니다.", "417 → 418 → 420 순서입니다."]) } }
-    private func moveNode(_ nodeId: String, direction: Int) { guard let index = engine.nodeOrder.firstIndex(of: nodeId) else { return }; app.haptics.play(.selection); engine.moveCommitNode(nodeId, newIndex: min(max(index + direction, 0), engine.nodeOrder.count - 1)) }
+    @State private var orderedNodes: [CommitNode] = []
+    var body: some View { PuzzleContainer("커밋 그래프 복구") {
+        ReorderableList(items: $orderedNodes, enabled: !engine.isSolved) { node, proxy in
+            VStack(alignment: .leading) { HStack { Text("\(node.number) \(node.title)").bold(); Spacer(); ReorderControls(enabled: !engine.isSolved, proxy: proxy) }; ScrollView(.horizontal) { HStack { ForEach(engine.branches, id: \.self) { branch in Button(branch) { engine.moveCommitNode(node.id, branch: branch) }.buttonStyle(.bordered).tint(engine.placements[node.id] == branch ? AppTheme.accent : .gray) } } } }.gameCard()
+        }
+        .onChange(of: orderedNodes.map(\.id)) { _, _ in syncEngineNodeOrder() }
+        HStack { Button("417 → 418") { engine.connectCommitNode("417", toId: "418") }; Button("418 → 420") { engine.connectCommitNode("418", toId: "420") } }; Button("그래프 검증") { if engine.submitCommitGraph() { app.completeCommitGraphPuzzle() } else { error = true; let reason = engine.nodes.contains { engine.placements[$0.id] != $0.correctBranch } ? "commitBranchIncorrect" : engine.nodeOrder != engine.nodes.sorted { $0.correctOrder < $1.correctOrder }.map(\.id) ? "commitOrderIncorrect" : "commitConnectionMissing"; app.recordWrongAttempt("commit_graph", reason: reason) } }.buttonStyle(PrimaryButtonStyle()); if error { Text("브랜치·순서·연결을 확인하세요.").foregroundStyle(.red) }; if app.gameProgress.commitGraphSolved { Button("접근 로그 열기") { app.navigate(.accessLogPuzzle) }.buttonStyle(PrimaryButtonStyle()) }; HintPair("commit_graph", ["실험과 수집 코드는 analytics입니다.", "417 → 418 → 420 순서입니다."])
+    }.onAppear { orderedNodes = engine.nodeOrder.compactMap { id in engine.nodes.first { $0.id == id } } } }
+    private func syncEngineNodeOrder() {
+        let targetOrder = orderedNodes.map(\.id)
+        guard targetOrder != engine.nodeOrder else { return }
+        app.haptics.play(.selection)
+        let maxIterations = targetOrder.count * targetOrder.count
+        var iterations = 0
+        while engine.nodeOrder != targetOrder, iterations < maxIterations {
+            iterations += 1
+            guard let mismatchIndex = Array(zip(engine.nodeOrder, targetOrder)).firstIndex(where: { $0 != $1 }) else { break }
+            let targetID = targetOrder[mismatchIndex]
+            guard let currentIndex = engine.nodeOrder.firstIndex(of: targetID) else { break }
+            let direction = currentIndex > mismatchIndex ? -1 : 1
+            engine.moveCommitNode(targetID, newIndex: min(max(currentIndex + direction, 0), engine.nodeOrder.count - 1))
+        }
+    }
 }
 
 struct AccessLogPuzzleView: View {
@@ -76,5 +118,25 @@ struct FinalDecisionView: View {
     var body: some View { PuzzleContainer("최종 결정") { Text("한도윤이 남긴 증거 복구 절차가 완료되었습니다."); Button("증거를 외부 감사 서버에 공개한다") { app.selectPublicDisclosure() }.buttonStyle(PrimaryButtonStyle()); Button("증거를 암호화해 보관한다") { app.selectEncryptedArchive() }.buttonStyle(.bordered).frame(maxWidth: .infinity) } }
 }
 
-private struct PuzzleContainer<Content: View>: View { let title: String; let content: Content; init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }; var body: some View { ZStack { AppTheme.background.ignoresSafeArea(); ScrollView { VStack(alignment: .leading, spacing: 14) { content }.padding() } }.navigationTitle(title) } }
+private struct PuzzleContainer<Content: View>: View {
+    let title: String
+    let content: Content
+    init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
+
+    @State private var isReorderDragging = false
+
+    var body: some View {
+        ZStack {
+            AppTheme.background.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) { content }.padding()
+            }
+            // 드래그 재정렬이 진행 중일 때만 스크롤을 잠가 드래그 제스처와의 동시 인식
+            // 경쟁을 막는다.
+            .scrollDisabled(ReorderDragFeatureFlags.disableScrollWhileDragging && isReorderDragging)
+            .onPreferenceChange(ReorderDraggingPreferenceKey.self) { isReorderDragging = $0 }
+        }
+        .navigationTitle(title)
+    }
+}
 private struct HintPair: View { @EnvironmentObject var app: AppContainer; let id: String; let hints: [String]; @State var level = 0; init(_ id: String, _ hints: [String]) { self.id = id; self.hints = hints }; var body: some View { VStack(alignment: .leading, spacing: 8) { ForEach(Array(hints.prefix(level).enumerated()), id: \.offset) { index, hint in Text("힌트 \(index + 1). \(hint)").frame(maxWidth: .infinity, alignment: .leading).gameCard() }; Button(level == 0 ? "힌트 1 공개" : level == 1 ? "힌트 2 공개" : "힌트 모두 확인함") { level = min(level + 1, 2); app.requestHint("\(id).\(level)") }.disabled(level >= 2) } } }

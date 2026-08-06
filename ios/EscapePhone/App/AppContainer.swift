@@ -2,30 +2,117 @@ import Combine
 import Foundation
 import SwiftUI
 
+enum AppLaunchRoute: Equatable { case themeSelection, themeMainMenu(ThemeId), theLastCommit, convenienceStorePlaying }
+
 @MainActor
 final class AppContainer: ObservableObject {
     @Published private(set) var gameProgress: GameProgress
     @Published var path: [AppRoute] = []
     @Published var userMessage: String?
+    @Published var launchRoute: AppLaunchRoute = .themeSelection
+    @Published var themeProgressVersion: Int = 0
     let store: GameProgressStore
+    let themeProgressStore: ThemeProgressStore
     let motion: MotionController
     let haptics: HapticProvider
     let ads: AdGateway
     let device: PuzzleDeviceConnector
+    private(set) lazy var convenienceStoreContainer: ConvenienceStoreContainer = ConvenienceStoreContainer(themeProgressStore: themeProgressStore, dateProvider: dateProvider, analyticsUploader: analyticsUploader)
     private let dateProvider: DateProviding
     private let analyticsUploader: PlaytestAnalyticsUploader
     private var activePuzzleId: String?
     private var activePuzzleStartedAt: Date?
     private var uploadTask: Task<Void, Never>?
 
-    init(store: GameProgressStore, motion: MotionController, haptics: HapticProvider, ads: AdGateway, device: PuzzleDeviceConnector, dateProvider: DateProviding = SystemDateProvider(), analyticsUploader: PlaytestAnalyticsUploader = NoOpPlaytestAnalyticsUploader()) {
-        self.store = store; self.motion = motion; self.haptics = haptics; self.ads = ads; self.device = device; self.dateProvider = dateProvider; self.analyticsUploader = analyticsUploader
+    init(store: GameProgressStore, themeProgressStore: ThemeProgressStore = InMemoryThemeProgressStore(), motion: MotionController, haptics: HapticProvider, ads: AdGateway, device: PuzzleDeviceConnector, dateProvider: DateProviding = SystemDateProvider(), analyticsUploader: PlaytestAnalyticsUploader = NoOpPlaytestAnalyticsUploader()) {
+        self.store = store; self.themeProgressStore = themeProgressStore; self.motion = motion; self.haptics = haptics; self.ads = ads; self.device = device; self.dateProvider = dateProvider; self.analyticsUploader = analyticsUploader
         do { gameProgress = try store.load() ?? GameProgress() }
         catch { gameProgress = GameProgress(); userMessage = "저장된 진행 정보가 손상되었습니다. 안전한 초기 상태로 시작합니다." }
         if !motion.isAvailable, gameProgress.controlMode == .motion { gameProgress.controlMode = .touch; save() }
+        themeProgressStore.migrateLegacyProgressIfNeeded()
     }
-    static func live() -> AppContainer { AppContainer(store: PlatformGameProgressStore(), motion: IOSMotionController(), haptics: PlatformHapticProvider(), ads: FakeAdGateway(), device: NoOpPuzzleDeviceConnector(), analyticsUploader: HTTPPlaytestAnalyticsUploader()) }
+    static func live() -> AppContainer { AppContainer(store: PlatformGameProgressStore(), themeProgressStore: PlatformThemeProgressStore(), motion: IOSMotionController(), haptics: PlatformHapticProvider(), ads: FakeAdGateway(), device: NoOpPuzzleDeviceConnector(), analyticsUploader: HTTPPlaytestAnalyticsUploader()) }
     static func preview(gameProgress: GameProgress = GameProgress()) -> AppContainer { AppContainer(store: InMemoryGameProgressStore(gameProgress: gameProgress), motion: MockMotionController(), haptics: NoOpHapticProvider(), ads: NoOpAdGateway(), device: NoOpPuzzleDeviceConnector()) }
+
+    func themeMetadataList() -> [ThemeMetadata] { ThemeRegistry.themes }
+    func themeProgress(for themeId: ThemeId) -> ThemeProgress { themeProgressStore.loadThemeProgress(themeId: themeId) }
+    func openThemeDetails(_ themeId: ThemeId) -> AppLaunchRoute {
+        switch themeId {
+        case .theLastCommit: return .theLastCommit
+        case .convenienceStoreLoop: return .themeMainMenu(themeId)
+        }
+    }
+    func selectTheme(_ themeId: ThemeId) {
+        switch themeId {
+        case .theLastCommit: if hasSavedGame { continueGame() } else { path = [] }
+        case .convenienceStoreLoop: break
+        }
+        launchRoute = openThemeDetails(themeId)
+    }
+    func startTheme(_ themeId: ThemeId) {
+        switch themeId {
+        case .theLastCommit: startNewGame()
+        case .convenienceStoreLoop: break
+        }
+        launchRoute = openThemeDetails(themeId)
+    }
+    func continueTheme(_ themeId: ThemeId) {
+        switch themeId {
+        case .theLastCommit:
+            path = []
+            launchRoute = openThemeDetails(themeId)
+            if hasSavedGame {
+                // NavigationStack이 빈 path로 먼저 루트 레이아웃을 안정시킨 뒤 목적지로
+                // 이동해야 large title과 목적지 화면의 부제목이 같은 최초 렌더 패스에서
+                // 동시에 계산되며 겹쳐 보이는 현상을 피할 수 있다.
+                DispatchQueue.main.async { [weak self] in self?.continueGame() }
+            }
+            return
+        case .convenienceStoreLoop: break
+        }
+        launchRoute = openThemeDetails(themeId)
+    }
+    func enterConvenienceStore() { launchRoute = .convenienceStorePlaying }
+    func openThemeSettings() { path = [.settings]; launchRoute = .theLastCommit }
+    func resetSelectedTheme(_ themeId: ThemeId) {
+        themeProgressStore.resetThemeProgress(themeId: themeId)
+        switch themeId {
+        case .theLastCommit: resetGame()
+        case .convenienceStoreLoop: convenienceStoreContainer.reset()
+        }
+        themeProgressVersion += 1
+    }
+    func resetAllThemeProgress() {
+        themeProgressStore.resetAllThemeProgress()
+        resetGame()
+        convenienceStoreContainer.reset()
+        themeProgressVersion += 1
+    }
+    func returnToThemeSelection() {
+        syncTheLastCommitThemeProgress()
+        themeProgressVersion += 1
+        launchRoute = .themeSelection
+    }
+    private func syncTheLastCommitThemeProgress() {
+        let status: ThemeStatus
+        switch gameProgress.currentStage {
+        case .gameCompleted: status = .completed
+        case .notStarted: status = .notStarted
+        default: status = .inProgress
+        }
+        themeProgressStore.saveThemeProgress(ThemeProgress(
+            themeId: .theLastCommit,
+            themeStatus: status,
+            currentStageId: gameProgress.currentStage.rawValue,
+            startedAt: gameProgress.startedAt,
+            lastSavedAt: gameProgress.lastSavedAt,
+            completedAt: gameProgress.completedAt,
+            hintCount: gameProgress.hintCount,
+            collectedEvidenceIds: gameProgress.collectedEvidenceIds,
+            endingId: gameProgress.endingType?.rawValue,
+            themeSpecificState: .theLastCommit(.init())
+        ))
+    }
 
     var hasSavedGame: Bool { gameProgress.startedAt != nil || gameProgress.currentStage != .notStarted }
     func startNewGame() { activePuzzleId = nil; activePuzzleStartedAt = nil; let consent = gameProgress.analyticsConsentStatus; let history = isAnalyticsConsentGranted ? archivedHistory() : []; let pending = gameProgress.pendingAnalyticsUploads; gameProgress = GameProgress(controlMode: motion.isAvailable ? .motion : .touch, playtestHistory: history, analyticsConsentStatus: consent, analyticsConsentVersion: gameProgress.analyticsConsentVersion, anonymousSessionId: isAnalyticsConsentGranted ? UUID().uuidString : nil, pendingAnalyticsUploads: pending); gameProgress.startedAt = dateProvider.now; save(); path = [.intro]; flushAnalyticsUploads(delayNanoseconds: 1_500_000_000) }
@@ -62,7 +149,7 @@ final class AppContainer: ObservableObject {
         activePuzzleId = nil; activePuzzleStartedAt = nil; save()
     }
     @discardableResult func submitPlayerFeedback(_ difficultyRating: Int, comment: String) -> Bool { guard isAnalyticsConsentGranted, (1...5).contains(difficultyRating) else { return false }; gameProgress.playerFeedback = PlayerFeedback(difficultyRating: difficultyRating, comment: String(comment.trimmingCharacters(in: .whitespacesAndNewlines).prefix(1000)), submittedAt: dateProvider.now); enqueueAnalyticsUpload(isFinal: true, delayNanoseconds: 0); save(); return true }
-    func exportPlaytestReport() -> String { let report = PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback); let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; return (try? encoder.encode(report)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}" }
+    func exportPlaytestReport() -> String { let report = PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType?.rawValue, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback); let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]; return (try? encoder.encode(report)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}" }
     func setControlMode(_ mode: FlashlightControlMode) { gameProgress.controlMode = mode == .motion && !motion.isAvailable ? .touch : mode; save() }
     func resetGame() { activePuzzleId = nil; activePuzzleStartedAt = nil; let consent = gameProgress.analyticsConsentStatus; let version = gameProgress.analyticsConsentVersion; motion.stop(); try? store.reset(); gameProgress = GameProgress(controlMode: motion.isAvailable ? .motion : .touch, analyticsConsentStatus: consent, analyticsConsentVersion: version); path = [] }
     func continueGame() { path = [routeForProgress()] }
@@ -82,11 +169,11 @@ final class AppContainer: ObservableObject {
     func retryPendingAnalyticsUploads() { flushAnalyticsUploads(delayNanoseconds: 1_500_000_000) }
     func retryAnalyticsUploadNow() { if gameProgress.pendingAnalyticsUploads.isEmpty { enqueueAnalyticsUpload(isFinal: gameProgress.playerFeedback != nil, delayNanoseconds: 0) } else { flushAnalyticsUploads(delayNanoseconds: 0) } }
     private func updatePuzzleAnalytics(_ puzzleId: String, _ change: (inout PuzzleAnalytics) -> Void) { var analytics = gameProgress.puzzleAnalytics[puzzleId] ?? PuzzleAnalytics(puzzleId: puzzleId); change(&analytics); gameProgress.puzzleAnalytics[puzzleId] = analytics }
-    private func archivedHistory() -> [PlaytestReport] { var history = gameProgress.playtestHistory; if gameProgress.startedAt != nil, !gameProgress.puzzleAnalytics.isEmpty { history.append(PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback)) }; return Array(history.suffix(20)) }
+    private func archivedHistory() -> [PlaytestReport] { var history = gameProgress.playtestHistory; if gameProgress.startedAt != nil, !gameProgress.puzzleAnalytics.isEmpty { history.append(PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType?.rawValue, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback)) }; return Array(history.suffix(20)) }
     private func enqueueAnalyticsUpload(isFinal: Bool, delayNanoseconds: UInt64) {
         guard isAnalyticsConsentGranted else { return }
         let sessionId = gameProgress.anonymousSessionId ?? UUID().uuidString; let sequence = gameProgress.analyticsUploadSequence + 1
-        let report = PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback)
+        let report = PlaytestReport(sessionStartedAt: gameProgress.startedAt, completedAt: gameProgress.completedAt, endingType: gameProgress.endingType?.rawValue, puzzleAnalytics: gameProgress.puzzleAnalytics, playerFeedback: gameProgress.playerFeedback)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.2"
         let envelope = PlaytestUploadEnvelope(schemaVersion: 1, sessionId: sessionId, sequence: sequence, platform: "ios", appVersion: version, consentVersion: gameProgress.analyticsConsentVersion, isFinal: isFinal, createdAt: dateProvider.now, report: report)
         gameProgress.anonymousSessionId = sessionId; gameProgress.analyticsUploadSequence = sequence; gameProgress.pendingAnalyticsUploads = Array((gameProgress.pendingAnalyticsUploads + [PendingAnalyticsUpload(id: "\(sessionId)-\(sequence)", envelope: envelope)]).suffix(20)); save(); flushAnalyticsUploads(delayNanoseconds: delayNanoseconds)

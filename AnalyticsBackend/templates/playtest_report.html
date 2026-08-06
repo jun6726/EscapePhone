@@ -62,6 +62,12 @@
     .comment small { color: var(--muted); }
     .empty { padding: 26px; text-align: center; color: var(--muted); }
     .status { min-height: 22px; margin-bottom: 10px; text-align: right; color: var(--muted); font-size: 13px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { border: 1px solid var(--line); border-radius: 999px; padding: 9px 18px; cursor: pointer; background: transparent; color: var(--muted); font-weight: 650; }
+    .tab.active { color: #04110d; background: var(--accent); border-color: var(--accent); }
+    .theme-badge { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 650; }
+    .theme-badge.the_last_commit { color: var(--accent2); background: #4fc3f716; }
+    .theme-badge.convenience_store_loop { color: #c792ff; background: #c792ff16; }
     @media (max-width: 920px) { .cards { grid-template-columns: repeat(2, 1fr); } .feedback-grid { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { .shell { width: min(100% - 20px, 1280px); padding-top: 18px; } header { align-items: flex-start; flex-direction: column; } .cards { grid-template-columns: 1fr 1fr; } .card { min-height: 104px; padding: 16px; } .metric { font-size: 25px; } .actions { width: 100%; } .actions button { flex: 1; } }
   </style>
@@ -100,6 +106,7 @@
     </header>
 
     <div id="status" class="status" aria-live="polite"></div>
+    <div id="themeTabs" class="tabs" role="tablist" aria-label="테마 선택"></div>
     <section class="cards" aria-label="요약 지표">
       <article class="panel card"><div class="muted">전체 세션</div><div id="totalSessions" class="metric">–</div></article>
       <article class="panel card"><div class="muted">게임 완료</div><div id="completedSessions" class="metric">–</div></article>
@@ -128,10 +135,10 @@
     </section>
 
     <section class="panel section">
-      <div class="section-head"><h2>최근 세션</h2><span class="muted">익명 ID 앞 8자리만 표시</span></div>
+      <div class="section-head"><h2>최근 세션</h2><span class="muted">전체 테마 · 익명 ID 앞 8자리만 표시</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>수신 시각</th><th>세션</th><th>플랫폼</th><th>버전</th><th>퍼즐 진행</th><th>플레이 시간</th><th>엔딩</th><th>최종 보고</th></tr></thead>
+          <thead><tr><th>수신 시각</th><th>테마</th><th>세션</th><th>플랫폼</th><th>버전</th><th>퍼즐 진행</th><th>플레이 시간</th><th>엔딩</th><th>최종 보고</th></tr></thead>
           <tbody id="sessionRows"></tbody>
         </table>
       </div>
@@ -146,23 +153,51 @@
       backNavigation: '뒤로 가기', appBackgroundOrClosed: '백그라운드/종료',
       noteWordOrderIncorrect: '단어 순서 오류', audioOrderIncorrect: '음성 순서 오류',
       commitGraphIncorrect: '커밋 배치 오류', accessLogAnswerIncorrect: '접근 기록 답변 오류',
-      serverCodeIncorrect: '서버 코드 오류'
+      serverCodeIncorrect: '서버 코드 오류',
+      receiptAnomalyIncorrect: '영수증 이상 항목 오답', barcodeSegmentsIncorrect: '바코드 조합 오류',
+      shelfDifferencesIncomplete: '진열대 차이 미완료', cctvOrderIncorrect: 'CCTV 순서 오류',
+      inventoryItemIncorrect: '재고 상품 오답', customerPatternIncorrect: '구매 패턴 오답',
+      incidentTimelineIncorrect: '사건 타임라인 오답'
     };
     const endingNames = { publicDisclosure: '외부 공개', encryptedArchive: '암호화 보관' };
+    const themeNames = { the_last_commit: 'The Last Commit', convenience_store_loop: '02:17' };
+
+    let selectedThemeId = null;
+    let latestData = null;
+
+    function renderTabs(data) {
+      const tabs = $('themeTabs'); tabs.replaceChildren();
+      data.themes.forEach(theme => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = `tab${theme.themeId === selectedThemeId ? ' active' : ''}`;
+        button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', String(theme.themeId === selectedThemeId));
+        button.textContent = `${themeNames[theme.themeId] || theme.name} · ${number(theme.totalSessions)}`;
+        button.addEventListener('click', () => { selectedThemeId = theme.themeId; render(latestData); });
+        tabs.append(button);
+      });
+    }
 
     function render(data) {
+      latestData = data;
+      if (!selectedThemeId || !data.themes.some(theme => theme.themeId === selectedThemeId)) {
+        selectedThemeId = data.themes[0]?.themeId || 'the_last_commit';
+      }
+      const theme = data.themes.find(item => item.themeId === selectedThemeId) || { totalSessions: 0, completedSessions: 0, puzzles: [], feedback: { count: 0, averageDifficulty: 0, ratingCounts: {}, comments: [] } };
+
+      renderTabs(data);
+
       $('generated').textContent = `마지막 집계 ${new Date(data.generatedAt).toLocaleString('ko-KR')} · 60초마다 자동 갱신`;
-      $('totalSessions').textContent = number(data.totalSessions);
-      $('completedSessions').textContent = number(data.completedSessions);
-      const completion = data.totalSessions ? data.completedSessions * 100 / data.totalSessions : 0;
+      $('totalSessions').textContent = number(theme.totalSessions);
+      $('completedSessions').textContent = number(theme.completedSessions);
+      const completion = theme.totalSessions ? theme.completedSessions * 100 / theme.totalSessions : 0;
       $('gameCompletionRate').textContent = `${number(completion, 1)}%`;
-      $('averageDifficulty').textContent = data.feedback.count ? `${number(data.feedback.averageDifficulty, 2)} / 5` : '–';
+      $('averageDifficulty').textContent = theme.feedback.count ? `${number(theme.feedback.averageDifficulty, 2)} / 5` : '–';
       $('platforms').innerHTML = '';
       const platformText = document.createTextNode(`A ${number(data.platformCounts.android)} · i ${number(data.platformCounts.ios)}`);
       $('platforms').append(platformText);
 
       const puzzleRows = $('puzzleRows'); puzzleRows.replaceChildren();
-      data.puzzles.forEach(puzzle => {
+      theme.puzzles.forEach(puzzle => {
         if (!puzzle.startedCount) return;
         const tr = document.createElement('tr');
         tr.append(cell(puzzle.name), cell(number(puzzle.startedCount)), cell(number(puzzle.completedCount)));
@@ -173,19 +208,19 @@
       });
       $('puzzleEmpty').hidden = puzzleRows.children.length > 0;
 
-      $('feedbackCount').textContent = `${number(data.feedback.count)}개 응답`;
+      $('feedbackCount').textContent = `${number(theme.feedback.count)}개 응답`;
       const ratings = $('ratings'); ratings.replaceChildren();
-      const maxRatingCount = Math.max(1, ...Object.values(data.feedback.ratingCounts));
+      const maxRatingCount = Math.max(1, ...Object.values(theme.feedback.ratingCounts));
       for (let value = 5; value >= 1; value--) {
-        const count = data.feedback.ratingCounts[String(value)] || 0;
+        const count = theme.feedback.ratingCounts[String(value)] || 0;
         const row = document.createElement('div'); row.className = 'rating-row';
         row.append(document.createTextNode(String(value)));
         const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('span'); fill.style.width = `${count * 100 / maxRatingCount}%`; bar.append(fill); row.append(bar);
         const countLabel = document.createElement('span'); countLabel.textContent = number(count); row.append(countLabel); ratings.append(row);
       }
       const comments = $('comments'); comments.replaceChildren();
-      if (!data.feedback.comments.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = '아직 입력된 의견이 없습니다.'; comments.append(empty); }
-      data.feedback.comments.forEach(item => {
+      if (!theme.feedback.comments.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = '아직 입력된 의견이 없습니다.'; comments.append(empty); }
+      theme.feedback.comments.forEach(item => {
         const article = document.createElement('article'); article.className = 'comment';
         const body = document.createElement('p'); body.textContent = item.comment;
         const meta = document.createElement('small'); meta.textContent = `난이도 ${item.difficultyRating}/5 · ${item.platform}`;
@@ -196,7 +231,8 @@
       data.recentSessions.forEach(session => {
         const tr = document.createElement('tr');
         const received = session.receivedAt ? new Date(session.receivedAt).toLocaleString('ko-KR') : '–';
-        tr.append(cell(received), cell(session.sessionId || '–'), cell(session.platform), cell(session.appVersion || '–'), cell(`${session.completedPuzzles}/${session.startedPuzzles}`), cell(session.totalMinutes == null ? '–' : `${number(session.totalMinutes, 1)}분`), cell(endingNames[session.endingType] || '–'), cell(session.isFinal ? '완료' : '진행 중'));
+        const themeCell = cell(''); const themeBadge = document.createElement('span'); themeBadge.className = `theme-badge ${session.themeId || 'the_last_commit'}`; themeBadge.textContent = themeNames[session.themeId] || session.themeId || '–'; themeCell.append(themeBadge);
+        tr.append(cell(received), themeCell, cell(session.sessionId || '–'), cell(session.platform), cell(session.appVersion || '–'), cell(`${session.completedPuzzles}/${session.startedPuzzles}`), cell(session.totalMinutes == null ? '–' : `${number(session.totalMinutes, 1)}분`), cell(endingNames[session.endingType] || '–'), cell(session.isFinal ? '완료' : '진행 중'));
         sessionRows.append(tr);
       });
       $('sessionEmpty').hidden = sessionRows.children.length > 0;

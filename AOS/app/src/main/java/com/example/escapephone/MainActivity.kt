@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.escapephone.app.AppRoot
+import com.example.escapephone.app.ConvenienceStoreViewModel
 import com.example.escapephone.app.EscapePhoneApp
 import com.example.escapephone.app.GameViewModel
 import com.example.escapephone.app.puzzleId
@@ -19,6 +22,7 @@ import com.example.escapephone.core.services.FakeAdGateway
 import com.example.escapephone.core.services.FakePuzzleDeviceConnector
 import com.example.escapephone.core.services.PlatformHapticProvider
 import com.example.escapephone.core.services.HttpPlaytestAnalyticsUploader
+import com.example.escapephone.core.theme.PlatformThemeProgressStore
 import com.example.escapephone.designsystem.EscapePhoneTheme
 
 class MainActivity : ComponentActivity() {
@@ -33,7 +37,15 @@ class MainActivity : ComponentActivity() {
                 val observer = LifecycleEventObserver { _, event -> when (event) { Lifecycle.Event.ON_RESUME -> { gameViewModel.startPuzzleSession(gameViewModel.uiState.value.currentScreen.puzzleId); gameViewModel.retryPendingAnalyticsUploads(); gameViewModel.start() }; Lifecycle.Event.ON_PAUSE -> gameViewModel.handleAppBackground(); else -> Unit } }
                 lifecycle.addObserver(observer); onDispose { lifecycle.removeObserver(observer); gameViewModel.handleAppBackground() }
             }
-            EscapePhoneTheme { EscapePhoneApp(gameViewModel) }
+            val themeProgressStore = remember { PlatformThemeProgressStore(applicationContext) }
+            val convenienceStoreViewModel: ConvenienceStoreViewModel = viewModel(factory = object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = ConvenienceStoreViewModel(themeProgressStore, analyticsUploader = HttpPlaytestAnalyticsUploader(BuildConfig.PLAYTEST_ANALYTICS_ENDPOINT)) as T
+            })
+            DisposableEffect(lifecycle) {
+                val observer = LifecycleEventObserver { _, event -> when (event) { Lifecycle.Event.ON_RESUME -> { convenienceStoreViewModel.startPuzzleSession(convenienceStoreViewModel.uiState.value.currentScreen.puzzleId); convenienceStoreViewModel.retryPendingAnalyticsUploads() }; Lifecycle.Event.ON_PAUSE -> convenienceStoreViewModel.handleAppBackground(); else -> Unit } }
+                lifecycle.addObserver(observer); onDispose { lifecycle.removeObserver(observer); convenienceStoreViewModel.handleAppBackground() }
+            }
+            EscapePhoneTheme { AppRoot(themeProgressStore, gameViewModel) { convenienceStoreViewModel } }
         }
     }
 }

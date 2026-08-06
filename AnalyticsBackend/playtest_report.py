@@ -11,6 +11,11 @@ DB_PATH = os.environ.get(
     os.path.join(DEFAULT_CARROT_SERVER_DIR, 'escapephone_playtest.db'),
 )
 
+THEME_NAMES = {
+    'the_last_commit': 'The Last Commit',
+    'convenience_store_loop': '02:17',
+}
+
 
 def median(values):
     return round(statistics.median(values), 1) if values else 0
@@ -20,17 +25,9 @@ def mean(values):
     return round(statistics.mean(values), 2) if values else 0
 
 
-def main():
-    if not os.path.exists(DB_PATH):
-        print('아직 플레이테스트 데이터가 없습니다.')
-        return
-    conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute('''SELECT payload FROM playtest_events e
-                           WHERE sequence=(SELECT MAX(sequence) FROM playtest_events
-                                           WHERE session_id=e.session_id)
-                           ORDER BY received_at DESC''').fetchall()
-    conn.close()
-    reports = [json.loads(row[0])['report'] for row in rows]
+def print_theme_report(theme_id, envelopes):
+    reports = [envelope['report'] for envelope in envelopes]
+    print(f'\n=== {THEME_NAMES.get(theme_id, theme_id)} ({theme_id}) ===')
     print(f'세션 수: {len(reports)}')
     puzzle_ids = sorted({puzzle_id for report in reports for puzzle_id in report.get('puzzleAnalytics', {})})
     print('\n퍼즐별 지표')
@@ -52,6 +49,28 @@ def main():
     if comments:
         print('최근 의견')
         for comment in comments[:20]: print(f'- {comment}')
+
+
+def main():
+    if not os.path.exists(DB_PATH):
+        print('아직 플레이테스트 데이터가 없습니다.')
+        return
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute('''SELECT payload FROM playtest_events e
+                           WHERE sequence=(SELECT MAX(sequence) FROM playtest_events
+                                           WHERE session_id=e.session_id)
+                           ORDER BY received_at DESC''').fetchall()
+    conn.close()
+    envelopes = [json.loads(row[0]) for row in rows]
+    print(f'전체 세션 수: {len(envelopes)}')
+
+    envelopes_by_theme = {}
+    for envelope in envelopes:
+        theme_id = envelope.get('themeId', 'the_last_commit')
+        envelopes_by_theme.setdefault(theme_id, []).append(envelope)
+
+    for theme_id in sorted(envelopes_by_theme, key=lambda key: (key != 'the_last_commit', key)):
+        print_theme_report(theme_id, envelopes_by_theme[theme_id])
 
 
 if __name__ == '__main__':
