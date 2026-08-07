@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -74,7 +75,6 @@ import kotlinx.coroutines.launch
             Screen.developerMenu -> if (BuildConfig.DEBUG) DeveloperMenuScreen(state, viewModel) else MainMenuScreen(viewModel)
         }
     }
-    state.hintText?.let { HintDialog(it, viewModel::clearHint) }
     state.notice?.let { AlertDialog(onDismissRequest = viewModel::dismissNotice, confirmButton = { TextButton(onClick = viewModel::dismissNotice) { Text("확인") } }, title = { Text("알림") }, text = { Text(it) }) }
     if (state.gameProgress.analyticsConsentStatus == AnalyticsConsentStatus.notDetermined) AnalyticsConsentDialog(viewModel::grantAnalyticsConsent, viewModel::denyAnalyticsConsent)
 }
@@ -118,7 +118,7 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
 }
 
 @Composable fun MessengerPuzzleScreen(state: GameUiState, viewModel: GameViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }; var errorPulse by remember { mutableIntStateOf(0) }
+    var showError by remember { mutableStateOf(false) }
     ScreenColumn("메신저 복구", viewModel::handleBackNavigation) {
         Text("손상된 대화를 시간과 내용의 흐름에 맞게 정렬하세요.", color = TextSecondary)
         ReorderableList(
@@ -127,19 +127,23 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
             enabled = !state.isSolved,
             onReorder = { reordered -> syncMessageOrder(viewModel, reordered.map { it.id }) }
         ) { message, proxy ->
-            Card(colors = CardDefaults.cardColors(containerColor = if (errorPulse % 2 == 0) Surface else Error.copy(alpha = .16f))) {
+            Card(colors = CardDefaults.cardColors(containerColor = Surface)) {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Row { Text(message.sender, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); Text(message.displayedTime, color = Primary, fontFamily = FontFamily.Monospace) }; Text(message.body) }
                     ReorderControls(proxy)
                 }
             }
         }
-        if (state.isSolved || state.gameProgress.messengerSolved) { Text("✓ 기록 복원 완료 · 사진첩 잠금 해제", color = Success); PrimaryAction("휴대폰 홈으로") { viewModel.navigate(Screen.phoneHome) } } else { PrimaryAction("순서 확인") { if (!viewModel.submitMessengerOrder()) errorPulse++ }; TextButton(onClick = { hintLevel = (hintLevel + 1).coerceAtMost(2); val text = if (hintLevel == 1) "메시지에 적힌 시간과 행동의 순서를 비교해 보세요." else "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다."; viewModel.requestHint("messenger_order.$hintLevel", text) }) { Text("힌트 보기") } }
+        if (state.isSolved || state.gameProgress.messengerSolved) { Text("✓ 기록 복원 완료 · 사진첩 잠금 해제", color = Success); PrimaryAction("휴대폰 홈으로") { viewModel.navigate(Screen.phoneHome) } } else {
+            PrimaryAction("순서 확인") { showError = !viewModel.submitMessengerOrder() }
+            Text("순서가 맞지 않습니다.", color = Error, modifier = Modifier.alpha(if (showError) 1f else 0f))
+            HintSection(listOf("메시지에 적힌 시간과 행동의 순서를 비교해 보세요.", "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다.")) { level -> viewModel.requestHint("messenger_order.$level", if (level == 1) "메시지에 적힌 시간과 행동의 순서를 비교해 보세요." else "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다.") }
+        }
     }
 }
 
 @Composable fun FlashlightPuzzleScreen(state: GameUiState, viewModel: GameViewModel) {
-    var canvasSize by remember { mutableStateOf(IntSize.Zero) }; var hintLevel by remember { mutableIntStateOf(0) }; var showInstructions by rememberSaveable { mutableStateOf(!state.gameProgress.flashlightSolved) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }; var showInstructions by rememberSaveable { mutableStateOf(!state.gameProgress.flashlightSolved) }
     LaunchedEffect(Unit) { viewModel.calibrate() }
     LaunchedEffect(state.currentScreen, state.gameProgress.flashlightSolved) {
         while (viewModel.uiState.value.currentScreen == Screen.flashlightPuzzle && !viewModel.uiState.value.gameProgress.flashlightSolved) {
@@ -155,7 +159,11 @@ private data class VirtualApp(val id: String, val title: String, val icon: Strin
         }
         if (!viewModel.isAvailable) Text("센서를 사용할 수 없어 터치 모드로 동작합니다.", color = TextSecondary)
         Row { OutlinedButton(onClick = viewModel::calibrate, enabled = state.gameProgress.controlMode == FlashlightControlMode.motion) { Text("기준 다시 맞추기") }; Spacer(Modifier.width(8.dp)); OutlinedButton(onClick = { viewModel.setControlMode(if (state.gameProgress.controlMode == FlashlightControlMode.motion) FlashlightControlMode.touch else FlashlightControlMode.motion) }, enabled = viewModel.isAvailable || state.gameProgress.controlMode == FlashlightControlMode.motion) { Text(if (state.gameProgress.controlMode == FlashlightControlMode.motion) "터치로 전환" else "기울기로 전환") } }
-        TextButton(onClick = { hintLevel = (hintLevel + 1).coerceAtMost(2); val motion = state.gameProgress.controlMode == FlashlightControlMode.motion; val text = if (motion && hintLevel == 1) "사진을 밝히는 방법이 화면 터치만은 아닐 수 있습니다." else if (motion) "휴대폰을 천천히 기울여 사진의 구석을 확인하세요." else if (hintLevel == 1) "빛을 사진의 어두운 부분으로 이동해 보세요." else "빛을 천천히 드래그해 사진의 구석을 확인하세요."; viewModel.requestHint("flashlight_search.${state.gameProgress.controlMode}.$hintLevel", text) }) { Text("힌트 보기") }
+        run {
+            val motion = state.gameProgress.controlMode == FlashlightControlMode.motion
+            val hints = if (motion) listOf("사진을 밝히는 방법이 화면 터치만은 아닐 수 있습니다.", "휴대폰을 천천히 기울여 사진의 구석을 확인하세요.") else listOf("빛을 사진의 어두운 부분으로 이동해 보세요.", "빛을 천천히 드래그해 사진의 구석을 확인하세요.")
+            HintSection(hints) { level -> viewModel.requestHint("flashlight_search.${state.gameProgress.controlMode}.$level", hints[level - 1]) }
+        }
         if (state.gameProgress.flashlightSolved) { Text("✓ 조작 커밋 417 발견 · 암호 메모 잠금 해제", color = Success); PrimaryAction("암호 메모 열기") { viewModel.navigate(Screen.encryptedNote) } }
     }
     if (showInstructions) AlertDialog(onDismissRequest = {}, confirmButton = { Button({ showInstructions = false }) { Text("확인") } }, title = { Text("손전등 사용 방법") }, text = { Text("스마트폰의 기울기에 따라서 손전등의 표시가 움직입니다. 특정 문자 위에서 1초이상 있으면 우측 상단에 기록됩니다.\n\n위에서 부터 힌트를 찾아주세요.", fontWeight = FontWeight.Bold) })
@@ -279,7 +287,6 @@ private fun syncMessageOrder(viewModel: GameViewModel, targetOrder: List<String>
 @Composable private fun PrimaryAction(text: String, enabled: Boolean = true, action: () -> Unit) { Button(action, Modifier.fillMaxWidth().height(52.dp), enabled = enabled, shape = RoundedCornerShape(16.dp)) { Text(text, fontWeight = FontWeight.Bold) } }
 @Composable private fun SecondaryAction(text: String, action: () -> Unit) { OutlinedButton(action, Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(16.dp)) { Text(text) } }
 @Composable private fun ConfirmDialog(text: String, cancel: () -> Unit, confirm: () -> Unit) { AlertDialog(cancel, confirmButton = { TextButton(confirm) { Text("확인", color = Error) } }, dismissButton = { TextButton(cancel) { Text("취소") } }, text = { Text(text) }) }
-@Composable private fun HintDialog(text: String, close: () -> Unit) { AlertDialog(close, confirmButton = { TextButton(close) { Text("닫기") } }, title = { Text("힌트") }, text = { Text(text) }) }
 @Composable private fun AnalyticsConsentDialog(accept: () -> Unit, decline: () -> Unit) { AlertDialog(onDismissRequest = {}, confirmButton = { Button(accept) { Text("동의하고 계속") } }, dismissButton = { TextButton(decline) { Text("동의하지 않음") } }, title = { Text("익명 플레이 분석에 참여할까요?") }, text = { Text("게임 개선을 위해 퍼즐별 소요 시간, 오답 횟수와 원인, 힌트 조회, 뒤로가기·백그라운드 이탈, 선택 입력한 난이도와 의견을 익명 세션 ID와 함께 JSON으로 수집합니다. 계정·위치·사진·연락처·마이크·광고 식별자는 수집하지 않습니다. 동의는 설정에서 언제든 철회할 수 있습니다.") }) }
 @Composable private fun KeypadButton(text: String, action: () -> Unit) { Button(action, Modifier.padding(5.dp).fillMaxWidth().height(62.dp), colors = ButtonDefaults.buttonColors(containerColor = Surface)) { Text(text, fontSize = if (text.length == 1) 24.sp else 11.sp) } }
 @Composable private fun InfoRow(title: String, value: String) { Row(Modifier.fillMaxWidth().background(Surface, RoundedCornerShape(12.dp)).padding(14.dp)) { Text(title, color = TextSecondary); Spacer(Modifier.weight(1f)); Text(value, fontFamily = FontFamily.Monospace) } }

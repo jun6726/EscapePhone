@@ -6,9 +6,8 @@ struct MessengerPuzzleView: View {
     @State private var engine = MessengerPuzzleEngine()
     @State private var orderedMessages: [PuzzleMessage] = []
     @State private var shake: CGFloat = 0
-    @State private var hintLevel = 0
-    @State private var showHint = false
     @State private var isReorderDragging = false
+    @State private var showError = false
     var body: some View {
         ZStack {
             AppTheme.background.ignoresSafeArea()
@@ -28,7 +27,8 @@ struct MessengerPuzzleView: View {
                         Button("휴대폰 홈으로") { app.path = [.phoneHome] }.buttonStyle(PrimaryButtonStyle())
                     } else {
                         Button("순서 확인") { submit() }.buttonStyle(PrimaryButtonStyle())
-                        Button("힌트 보기") { hintLevel = min(hintLevel + 1, 2); app.requestHint("messenger_order.\(hintLevel)"); showHint = true }.padding()
+                        Text("순서가 맞지 않습니다.").foregroundStyle(.red).opacity(showError ? 1 : 0)
+                        HintSection(hints: ["메시지에 적힌 시간과 행동의 순서를 비교해 보세요.", "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다."]) { level in app.requestHint("messenger_order.\(level)") }
                     }
                 }
                 .padding()
@@ -37,7 +37,6 @@ struct MessengerPuzzleView: View {
             .onPreferenceChange(ReorderDraggingPreferenceKey.self) { isReorderDragging = $0 }
         }
         .navigationTitle("메신저 복구")
-        .sheet(isPresented: $showHint) { HintSheet(title: "메신저 힌트 \(hintLevel)/2", text: hintLevel == 1 ? "메시지에 적힌 시간과 행동의 순서를 비교해 보세요." : "사진 확인은 서버 백업과 마지막 커밋보다 먼저입니다.") }
         .onAppear { orderedMessages = engine.messages }
     }
     /// 사용자가 손을 뗀 순간의 시각적 배치를 엔진의 실제 순서에 반영한다.
@@ -57,14 +56,18 @@ struct MessengerPuzzleView: View {
             if currentIndex > mismatchIndex { engine.moveUp(at: currentIndex) } else { engine.moveDown(at: currentIndex) }
         }
     }
-    private func submit() { if engine.submit() { app.haptics.play(.success); app.completeMessengerPuzzle() } else { app.recordWrongAttempt("messenger_order", reason: "messageOrderIncorrect"); app.haptics.play(.error); withAnimation(reduceMotion ? nil : .linear(duration: 0.35)) { shake += 1 } } }
-}
-
-struct HintSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let title: String; let text: String
-    var body: some View { NavigationStack { VStack(spacing: 24) { Image(systemName: "lightbulb.fill").font(.largeTitle).foregroundStyle(AppTheme.accent); Text(text).font(.title3); Spacer() }.padding().navigationTitle(title).toolbar { Button("닫기") { dismiss() } } } }
+    private func submit() {
+        if engine.submit() {
+            showError = false
+            app.haptics.play(.success)
+            app.completeMessengerPuzzle()
+        } else {
+            app.recordWrongAttempt("messenger_order", reason: "messageOrderIncorrect")
+            app.haptics.play(.error)
+            showError = true
+            withAnimation(reduceMotion ? nil : .linear(duration: 0.35)) { shake += 1 }
+        }
+    }
 }
 
 #Preview { NavigationStack { MessengerPuzzleView().environmentObject(AppContainer.preview(gameProgress: GameProgress(currentStage: .introCompleted))) } }
-#Preview("힌트") { HintSheet(title: "힌트 1/2", text: "시간과 행동의 순서를 비교해 보세요.") }

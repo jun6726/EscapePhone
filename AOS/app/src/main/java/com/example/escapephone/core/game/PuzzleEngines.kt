@@ -78,6 +78,7 @@ class EncryptedNotePuzzleEngine {
     fun unlock(code: String): Boolean { isUnlocked = code == "417"; return isUnlocked }
     fun selectNoteWord(word: String) { if (isUnlocked && !isSolved && word in noteWords && word !in selectedWords) selectedWords = selectedWords + word }
     fun removeNoteWord() { if (!isSolved && selectedWords.isNotEmpty()) selectedWords = selectedWords.dropLast(1) }
+    fun removeAllNoteWords() { if (!isSolved) selectedWords = emptyList() }
     fun submitEncryptedNote(): Boolean { isSolved = isUnlocked && selectedWords == listOf("기록", "수집", "중"); return isSolved }
     fun completeEncryptedNotePuzzle(): Boolean { isUnlocked = true; selectedWords = listOf("기록", "수집", "중"); isSolved = true; return true }
 }

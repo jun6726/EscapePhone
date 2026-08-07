@@ -117,7 +117,8 @@ class GameViewModel(
     fun selectPublicDisclosure() = selectEnding(EndingType.publicDisclosure)
     fun selectEncryptedArchive() = selectEnding(EndingType.encryptedArchive)
     private fun selectEnding(endingType: EndingType) { gameProgress = gameProgress.copy(currentStage = GameStage.gameCompleted, endingType = endingType, completedAt = gameProgress.completedAt ?: timeProvider.now()); save(); navigate(Screen.ending) }
-    fun requestHint(hintId: String, text: String) { val puzzleId = hintId.substringBefore('.'); if (isAnalyticsConsentGranted) updatePuzzleAnalytics(puzzleId) { it.copy(hintViewCount = it.hintViewCount + 1) }; if (hintId !in gameProgress.seenHintIds) gameProgress = gameProgress.copy(hintCount = gameProgress.hintCount + 1, seenHintIds = gameProgress.seenHintIds + hintId); save(); showHint(text) }
+    // 힌트는 화면 안에 인라인으로 표시되므로(HintSection) 팝업을 띄우지 않고 분석 기록만 남긴다.
+    fun requestHint(hintId: String, text: String) { val puzzleId = hintId.substringBefore('.'); if (isAnalyticsConsentGranted) updatePuzzleAnalytics(puzzleId) { it.copy(hintViewCount = it.hintViewCount + 1) }; if (hintId !in gameProgress.seenHintIds) gameProgress = gameProgress.copy(hintCount = gameProgress.hintCount + 1, seenHintIds = gameProgress.seenHintIds + hintId); save() }
     fun startPuzzleSession(puzzleId: String?) {
         if (!isAnalyticsConsentGranted || puzzleId == null || activePuzzleId == puzzleId || gameProgress.puzzleAnalytics[puzzleId]?.completedAt != null) return
         if (activePuzzleId != null) recordPuzzleExit(PuzzleExitReason.backNavigation)

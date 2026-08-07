@@ -159,13 +159,13 @@ class ConvenienceStoreViewModel(
         save(); navigate(ConvenienceStoreScreen.ending)
     }
 
+    // 힌트는 화면 안에 인라인으로 표시되므로(HintSection) 팝업을 띄우지 않고 분석 기록만 남긴다.
     fun requestHint(hintId: String, text: String) {
         val puzzleId = hintId.substringBefore('.')
         if (isAnalyticsConsentGranted) updatePuzzleAnalytics(puzzleId) { it.copy(hintViewCount = it.hintViewCount + 1) }
         if (hintId !in progress.seenHintIds) progress = progress.copy(seenHintIds = progress.seenHintIds + hintId)
-        save(); _uiState.update { it.copy(hintText = text) }
+        save()
     }
-    fun clearHint() { _uiState.update { it.copy(hintText = null) } }
 
     fun setControlMode(mode: TiltControlMode) { progress = progress.copy(controlMode = mode); save() }
 

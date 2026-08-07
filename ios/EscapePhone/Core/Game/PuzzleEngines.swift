@@ -84,6 +84,7 @@ struct EncryptedNotePuzzleEngine {
     mutating func unlock(code: String) -> Bool { isUnlocked = code == "417"; return isUnlocked }
     mutating func selectNoteWord(_ word: String) { guard isUnlocked, !isSolved, noteWords.contains(word), !selectedWords.contains(word) else { return }; selectedWords.append(word) }
     mutating func removeNoteWord() { guard !isSolved, !selectedWords.isEmpty else { return }; selectedWords.removeLast() }
+    mutating func removeAllNoteWords() { guard !isSolved else { return }; selectedWords.removeAll() }
     mutating func submitEncryptedNote() -> Bool { isSolved = isUnlocked && selectedWords == ["기록", "수집", "중"]; return isSolved }
     mutating func completeEncryptedNotePuzzle() -> Bool { isUnlocked = true; selectedWords = ["기록", "수집", "중"]; isSolved = true; return true }
 }

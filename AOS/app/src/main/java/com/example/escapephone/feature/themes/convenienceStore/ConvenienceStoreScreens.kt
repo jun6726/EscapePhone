@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontFamily
@@ -29,6 +30,7 @@ import com.example.escapephone.app.puzzleId
 import com.example.escapephone.core.model.ConvenienceStoreSpec
 import com.example.escapephone.core.model.TiltControlMode
 import com.example.escapephone.designsystem.Background
+import com.example.escapephone.designsystem.HintSection
 import com.example.escapephone.designsystem.LocalReorderDragReporter
 import com.example.escapephone.designsystem.ReorderControls
 import com.example.escapephone.designsystem.ReorderableList
@@ -173,7 +175,6 @@ fun ConvenienceStoreHomeScreen(state: ConvenienceStoreUiState, viewModel: Conven
 
 @Composable
 fun ReceiptPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var selected by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<Boolean?>(null) }
     StoreScreenColumn("영수증과 가격표 비교", onBack = { viewModel.navigate(ConvenienceStoreScreen.home) }) {
@@ -196,19 +197,15 @@ fun ReceiptPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeReceiptPuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { result = viewModel.receiptEngine.submitReceiptAnswer(); if (result == true) viewModel.completeReceiptPuzzle() else viewModel.recordWrongAttempt("receipt_price", "receiptAnomalyIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            if (result == false) Text("일치하지 않습니다. 다시 확인하세요.", color = StoreWarning)
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "가격표와 영수증의 금액이 모두 같은지 확인하세요." else "실제 상품 목록에 존재하지 않는 네 자리 코드를 찾아보세요."
-                viewModel.requestHint("receipt_price.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            Text("일치하지 않습니다. 다시 확인하세요.", color = StoreWarning, modifier = Modifier.alpha(if (result == false) 1f else 0f))
+            val hints = listOf("가격표와 영수증의 금액이 모두 같은지 확인하세요.", "실제 상품 목록에 존재하지 않는 네 자리 코드를 찾아보세요.")
+            HintSection(hints) { level -> viewModel.requestHint("receipt_price.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun BarcodePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var category by remember { mutableStateOf("") }
     var shelfPosition by remember { mutableStateOf("") }
     var arrivalOrder by remember { mutableStateOf("") }
@@ -230,19 +227,15 @@ fun BarcodePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeBarcodePuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { result = viewModel.barcodeEngine.submitBarcodeRule(); if (result == true) viewModel.completeBarcodePuzzle() else viewModel.recordWrongAttempt("barcode_rule", "barcodeSegmentsIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            if (result == false) Text("규칙이 맞지 않습니다.", color = StoreWarning)
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "바코드 숫자를 한 번에 읽지 말고 구간별로 나누어 보세요." else "상품 분류, 진열 위치, 입고 순서가 각각 다른 구간에 들어 있습니다."
-                viewModel.requestHint("barcode_rule.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            Text("규칙이 맞지 않습니다.", color = StoreWarning, modifier = Modifier.alpha(if (result == false) 1f else 0f))
+            val hints = listOf("바코드 숫자를 한 번에 읽지 말고 구간별로 나누어 보세요.", "상품 분류, 진열 위치, 입고 순서가 각각 다른 구간에 들어 있습니다.")
+            HintSection(hints) { level -> viewModel.requestHint("barcode_rule.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun ShelfDifferencePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var touchMode by remember { mutableStateOf(true) }
     var revealMessage by remember { mutableStateOf(false) }
     val differenceLabels = mapOf(
@@ -272,18 +265,14 @@ fun ShelfDifferencePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeShelfDifferencePuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { if (!viewModel.shelfDifferenceEngine.submitShelfDifferences()) viewModel.recordWrongAttempt("shelf_difference", "shelfDifferencesIncomplete") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "상품 개수뿐 아니라 가격표와 빈 공간도 비교하세요." else "냉장고 아래쪽에 이전 기록에는 없던 물체가 있습니다."
-                viewModel.requestHint("shelf_difference.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            val hints = listOf("상품 개수뿐 아니라 가격표와 빈 공간도 비교하세요.", "냉장고 아래쪽에 이전 기록에는 없던 물체가 있습니다.")
+            HintSection(hints) { level -> viewModel.requestHint("shelf_difference.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun CctvPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var order by remember { mutableStateOf(viewModel.cctvEngine.recordOrder) }
     var result by remember { mutableStateOf<Boolean?>(null) }
     StoreScreenColumn("CCTV 시간 순서 복원", onBack = { viewModel.navigate(ConvenienceStoreScreen.home) }) {
@@ -312,19 +301,15 @@ fun CctvPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeCctvPuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { result = viewModel.cctvEngine.submitCctvSequence(); if (result == true) viewModel.completeCctvPuzzle() else viewModel.recordWrongAttempt("cctv_sequence", "cctvOrderIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            if (result == false) Text("순서가 맞지 않습니다.", color = StoreWarning)
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "각 화면의 매장 시계만으로는 순서를 확정할 수 없습니다." else "전자레인지와 POS 영수증 출력 상태를 함께 비교하세요."
-                viewModel.requestHint("cctv_sequence.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            Text("순서가 맞지 않습니다.", color = StoreWarning, modifier = Modifier.alpha(if (result == false) 1f else 0f))
+            val hints = listOf("각 화면의 매장 시계만으로는 순서를 확정할 수 없습니다.", "전자레인지와 POS 영수증 출력 상태를 함께 비교하세요.")
+            HintSection(hints) { level -> viewModel.requestHint("cctv_sequence.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun InventoryPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var selected by remember { mutableStateOf<String?>(null) }
     var result by remember { mutableStateOf<Boolean?>(null) }
     StoreScreenColumn("POS 판매기록과 재고 교차검증", onBack = { viewModel.navigate(ConvenienceStoreScreen.home) }) {
@@ -348,19 +333,15 @@ fun InventoryPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeInventoryPuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { result = viewModel.inventoryEngine.submitInventoryDiscrepancy(); if (result == true) viewModel.completeInventoryPuzzle() else viewModel.recordWrongAttempt("inventory_crosscheck", "inventoryItemIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            if (result == false) Text("이 상품은 정상입니다.", color = StoreWarning)
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "현재 재고는 이전 재고에 입고를 더하고 판매를 빼서 계산합니다." else "계산 결과와 실제 수량이 1개 차이 나는 상품을 찾으세요."
-                viewModel.requestHint("inventory_crosscheck.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            Text("이 상품은 정상입니다.", color = StoreWarning, modifier = Modifier.alpha(if (result == false) 1f else 0f))
+            val hints = listOf("현재 재고는 이전 재고에 입고를 더하고 판매를 빼서 계산합니다.", "계산 결과와 실제 수량이 1개 차이 나는 상품을 찾으세요.")
+            HintSection(hints) { level -> viewModel.requestHint("inventory_crosscheck.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun CustomerPatternPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var candidate by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<Boolean?>(null) }
     StoreScreenColumn("손님의 구매 패턴", onBack = { viewModel.navigate(ConvenienceStoreScreen.home) }) {
@@ -373,18 +354,14 @@ fun CustomerPatternPuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeCustomerPatternPuzzle(); viewModel.navigate(ConvenienceStoreScreen.home) }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("홈으로") }
         } else {
             Button(onClick = { candidate = viewModel.customerPatternEngine.decodePurchasePattern(); result = viewModel.customerPatternEngine.submitCustomerPattern(candidate); if (result == true) viewModel.completeCustomerPatternPuzzle() else viewModel.recordWrongAttempt("customer_pattern", "customerPatternIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("패턴 해독") }
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "손님이 산 상품보다 상품이 놓인 위치에 주목하세요." else "각 반복에서 구매한 상품을 진열 순서로 변환하세요."
-                viewModel.requestHint("customer_pattern.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            val hints = listOf("손님이 산 상품보다 상품이 놓인 위치에 주목하세요.", "각 반복에서 구매한 상품을 진열 순서로 변환하세요.")
+            HintSection(hints) { level -> viewModel.requestHint("customer_pattern.$level", hints[level - 1]) }
         }
     }
 }
 
 @Composable
 fun IncidentTimelinePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
-    var hintLevel by remember { mutableIntStateOf(0) }
     var order by remember { mutableStateOf(viewModel.incidentTimelineEngine.eventOrder) }
     var result by remember { mutableStateOf<Boolean?>(null) }
     StoreScreenColumn("실종 당일 타임라인", onBack = { viewModel.navigate(ConvenienceStoreScreen.home) }) {
@@ -415,12 +392,9 @@ fun IncidentTimelinePuzzleScreen(viewModel: ConvenienceStoreViewModel) {
             Button(onClick = { viewModel.completeIncidentTimelinePuzzle() }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("계속") }
         } else {
             Button(onClick = { result = viewModel.incidentTimelineEngine.validateIncidentTimeline(); if (result == true) viewModel.completeIncidentTimelinePuzzle() else viewModel.recordWrongAttempt("incident_timeline", "incidentTimelineIncorrect") }, colors = ButtonDefaults.buttonColors(containerColor = StoreAccent)) { Text("확인") }
-            if (result == false) Text("사건 순서가 맞지 않습니다.", color = StoreWarning)
-            TextButton(onClick = {
-                hintLevel = (hintLevel + 1).coerceAtMost(2)
-                val text = if (hintLevel == 1) "기록 시간과 실제 사건 시간이 조작되었을 가능성을 고려하세요." else "CENTRAL-7 접속 이후 변경된 기록을 별도로 분리하세요."
-                viewModel.requestHint("incident_timeline.$hintLevel", text)
-            }) { Text("힌트 보기") }
+            Text("사건 순서가 맞지 않습니다.", color = StoreWarning, modifier = Modifier.alpha(if (result == false) 1f else 0f))
+            val hints = listOf("기록 시간과 실제 사건 시간이 조작되었을 가능성을 고려하세요.", "CENTRAL-7 접속 이후 변경된 기록을 별도로 분리하세요.")
+            HintSection(hints) { level -> viewModel.requestHint("incident_timeline.$level", hints[level - 1]) }
         }
     }
 }

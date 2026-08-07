@@ -112,9 +112,9 @@ struct ConvenienceStoreHomeScreen: View {
 
 struct ReceiptPuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var selected: String?
     @State private var result: Bool?
+    private let hints = ["가격표와 영수증의 금액이 모두 같은지 확인하세요.", "실제 상품 목록에 존재하지 않는 네 자리 코드를 찾아보세요."]
     var body: some View {
         StoreScreenColumn(title: "영수증과 가격표 비교", onBack: { container.navigate(.home) }) {
             Text("POS에 남은 영수증과 진열대 가격표를 비교해 잘못 계산된 상품을 찾으세요.").foregroundStyle(AppTheme.textSecondary)
@@ -131,12 +131,8 @@ struct ReceiptPuzzleScreen: View {
                 Button("홈으로") { container.completeReceiptPuzzle(); container.navigate(.home) }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { result = container.receiptEngine.submitReceiptAnswer(); if result == true { container.completeReceiptPuzzle() } else { container.recordWrongAttempt("receipt_price", reason: "receiptAnomalyIncorrect") } }.buttonStyle(PrimaryButtonStyle())
-                if result == false { Text("일치하지 않습니다. 다시 확인하세요.").foregroundStyle(StoreTheme.warning) }
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "가격표와 영수증의 금액이 모두 같은지 확인하세요." : "실제 상품 목록에 존재하지 않는 네 자리 코드를 찾아보세요."
-                    container.requestHint("receipt_price.\(hintLevel)", text: text)
-                }
+                Text("일치하지 않습니다. 다시 확인하세요.").foregroundStyle(StoreTheme.warning).opacity(result == false ? 1 : 0)
+                HintSection(hints: hints) { level in container.requestHint("receipt_price.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -144,11 +140,11 @@ struct ReceiptPuzzleScreen: View {
 
 struct BarcodePuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var category = ""
     @State private var shelfPosition = ""
     @State private var arrivalOrder = ""
     @State private var result: Bool?
+    private let hints = ["바코드 숫자를 한 번에 읽지 말고 구간별로 나누어 보세요.", "상품 분류, 진열 위치, 입고 순서가 각각 다른 구간에 들어 있습니다."]
     var body: some View {
         StoreScreenColumn(title: "바코드 규칙 복원", onBack: { container.navigate(.home) }) {
             Text("바코드는 [분류][위치][입고순서] 형식입니다. 세 상품을 비교해 숨겨진 코드를 조합하세요.").foregroundStyle(AppTheme.textSecondary)
@@ -166,12 +162,8 @@ struct BarcodePuzzleScreen: View {
                 Button("홈으로") { container.completeBarcodePuzzle(); container.navigate(.home) }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { result = container.barcodeEngine.submitBarcodeRule(); if result == true { container.completeBarcodePuzzle() } else { container.recordWrongAttempt("barcode_rule", reason: "barcodeSegmentsIncorrect") } }.buttonStyle(PrimaryButtonStyle())
-                if result == false { Text("규칙이 맞지 않습니다.").foregroundStyle(StoreTheme.warning) }
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "바코드 숫자를 한 번에 읽지 말고 구간별로 나누어 보세요." : "상품 분류, 진열 위치, 입고 순서가 각각 다른 구간에 들어 있습니다."
-                    container.requestHint("barcode_rule.\(hintLevel)", text: text)
-                }
+                Text("규칙이 맞지 않습니다.").foregroundStyle(StoreTheme.warning).opacity(result == false ? 1 : 0)
+                HintSection(hints: hints) { level in container.requestHint("barcode_rule.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -179,9 +171,9 @@ struct BarcodePuzzleScreen: View {
 
 struct ShelfDifferencePuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var touchMode = true
     @State private var revealMessage = false
+    private let hints = ["상품 개수뿐 아니라 가격표와 빈 공간도 비교하세요.", "냉장고 아래쪽에 이전 기록에는 없던 물체가 있습니다."]
     private let labels: [(String, String)] = [
         ("drink_position", "음료 한 병의 위치"), ("umbrella_count", "우산 개수"), ("price_tag_direction", "가격표 방향"), ("empty_slot", "빈 상품 칸"), ("fridge_pouch", "냉장고 하단의 작은 봉투")
     ]
@@ -205,11 +197,7 @@ struct ShelfDifferencePuzzleScreen: View {
                 Button("홈으로") { container.completeShelfDifferencePuzzle(); container.navigate(.home) }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { if !container.shelfDifferenceEngine.submitShelfDifferences() { container.recordWrongAttempt("shelf_difference", reason: "shelfDifferencesIncomplete") } }.buttonStyle(PrimaryButtonStyle())
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "상품 개수뿐 아니라 가격표와 빈 공간도 비교하세요." : "냉장고 아래쪽에 이전 기록에는 없던 물체가 있습니다."
-                    container.requestHint("shelf_difference.\(hintLevel)", text: text)
-                }
+                HintSection(hints: hints) { level in container.requestHint("shelf_difference.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -217,9 +205,9 @@ struct ShelfDifferencePuzzleScreen: View {
 
 struct CctvPuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var result: Bool?
     @State private var orderedRecords: [CctvRecord] = []
+    private let hints = ["각 화면의 매장 시계만으로는 순서를 확정할 수 없습니다.", "전자레인지와 POS 영수증 출력 상태를 함께 비교하세요."]
     var body: some View {
         StoreScreenColumn(title: "CCTV 시간 순서 복원", onBack: { container.navigate(.home) }) {
             Text("기록을 올바른 시간 순서로 정렬하세요.").foregroundStyle(AppTheme.textSecondary)
@@ -237,12 +225,8 @@ struct CctvPuzzleScreen: View {
                 Button("홈으로") { container.completeCctvPuzzle(); container.navigate(.home) }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { result = container.cctvEngine.submitCctvSequence(); if result == true { container.completeCctvPuzzle() } else { container.recordWrongAttempt("cctv_sequence", reason: "cctvOrderIncorrect") } }.buttonStyle(PrimaryButtonStyle())
-                if result == false { Text("순서가 맞지 않습니다.").foregroundStyle(StoreTheme.warning) }
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "각 화면의 매장 시계만으로는 순서를 확정할 수 없습니다." : "전자레인지와 POS 영수증 출력 상태를 함께 비교하세요."
-                    container.requestHint("cctv_sequence.\(hintLevel)", text: text)
-                }
+                Text("순서가 맞지 않습니다.").foregroundStyle(StoreTheme.warning).opacity(result == false ? 1 : 0)
+                HintSection(hints: hints) { level in container.requestHint("cctv_sequence.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -263,9 +247,9 @@ struct CctvPuzzleScreen: View {
 
 struct InventoryPuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var selected: String?
     @State private var result: Bool?
+    private let hints = ["현재 재고는 이전 재고에 입고를 더하고 판매를 빼서 계산합니다.", "계산 결과와 실제 수량이 1개 차이 나는 상품을 찾으세요."]
     var body: some View {
         StoreScreenColumn(title: "POS 판매기록과 재고 교차검증", onBack: { container.navigate(.home) }) {
             Text("현재 재고 = 이전 재고 + 입고 - 판매. 계산이 맞지 않는 상품을 찾으세요.").foregroundStyle(AppTheme.textSecondary)
@@ -285,12 +269,8 @@ struct InventoryPuzzleScreen: View {
                 Button("홈으로") { container.completeInventoryPuzzle(); container.navigate(.home) }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { result = container.inventoryEngine.submitInventoryDiscrepancy(); if result == true { container.completeInventoryPuzzle() } else { container.recordWrongAttempt("inventory_crosscheck", reason: "inventoryItemIncorrect") } }.buttonStyle(PrimaryButtonStyle())
-                if result == false { Text("이 상품은 정상입니다.").foregroundStyle(StoreTheme.warning) }
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "현재 재고는 이전 재고에 입고를 더하고 판매를 빼서 계산합니다." : "계산 결과와 실제 수량이 1개 차이 나는 상품을 찾으세요."
-                    container.requestHint("inventory_crosscheck.\(hintLevel)", text: text)
-                }
+                Text("이 상품은 정상입니다.").foregroundStyle(StoreTheme.warning).opacity(result == false ? 1 : 0)
+                HintSection(hints: hints) { level in container.requestHint("inventory_crosscheck.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -298,8 +278,8 @@ struct InventoryPuzzleScreen: View {
 
 struct CustomerPatternPuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var result: Bool?
+    private let hints = ["손님이 산 상품보다 상품이 놓인 위치에 주목하세요.", "각 반복에서 구매한 상품을 진열 순서로 변환하세요."]
     var body: some View {
         StoreScreenColumn(title: "손님의 구매 패턴", onBack: { container.navigate(.home) }) {
             Text("반복마다 동일 손님이 다른 상품을 구매합니다. 패턴을 해독해 메시지를 복원하세요.").foregroundStyle(AppTheme.textSecondary)
@@ -315,11 +295,7 @@ struct CustomerPatternPuzzleScreen: View {
                     result = container.customerPatternEngine.submitCustomerPattern(candidate)
                     if result == true { container.completeCustomerPatternPuzzle() } else { container.recordWrongAttempt("customer_pattern", reason: "customerPatternIncorrect") }
                 }.buttonStyle(PrimaryButtonStyle())
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "손님이 산 상품보다 상품이 놓인 위치에 주목하세요." : "각 반복에서 구매한 상품을 진열 순서로 변환하세요."
-                    container.requestHint("customer_pattern.\(hintLevel)", text: text)
-                }
+                HintSection(hints: hints) { level in container.requestHint("customer_pattern.\(level)", text: hints[level - 1]) }
             }
         }
     }
@@ -327,9 +303,9 @@ struct CustomerPatternPuzzleScreen: View {
 
 struct IncidentTimelinePuzzleScreen: View {
     @ObservedObject var container: ConvenienceStoreContainer
-    @State private var hintLevel = 0
     @State private var orderedEvents: [IncidentEvent] = []
     @State private var result: Bool?
+    private let hints = ["기록 시간과 실제 사건 시간이 조작되었을 가능성을 고려하세요.", "CENTRAL-7 접속 이후 변경된 기록을 별도로 분리하세요."]
     var body: some View {
         StoreScreenColumn(title: "실종 당일 타임라인", onBack: { container.navigate(.home) }) {
             Text("사건 카드를 시간순으로 배치하고 결론을 모두 확인하세요.").foregroundStyle(AppTheme.textSecondary)
@@ -348,12 +324,8 @@ struct IncidentTimelinePuzzleScreen: View {
                 Button("계속") { container.completeIncidentTimelinePuzzle() }.buttonStyle(PrimaryButtonStyle())
             } else {
                 Button("확인") { result = container.incidentTimelineEngine.validateIncidentTimeline(); if result == true { container.completeIncidentTimelinePuzzle() } else { container.recordWrongAttempt("incident_timeline", reason: "incidentTimelineIncorrect") } }.buttonStyle(PrimaryButtonStyle())
-                if result == false { Text("사건 순서가 맞지 않습니다.").foregroundStyle(StoreTheme.warning) }
-                Button("힌트 보기") {
-                    hintLevel = min(hintLevel + 1, 2)
-                    let text = hintLevel == 1 ? "기록 시간과 실제 사건 시간이 조작되었을 가능성을 고려하세요." : "CENTRAL-7 접속 이후 변경된 기록을 별도로 분리하세요."
-                    container.requestHint("incident_timeline.\(hintLevel)", text: text)
-                }
+                Text("사건 순서가 맞지 않습니다.").foregroundStyle(StoreTheme.warning).opacity(result == false ? 1 : 0)
+                HintSection(hints: hints) { level in container.requestHint("incident_timeline.\(level)", text: hints[level - 1]) }
             }
         }
     }

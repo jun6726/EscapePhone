@@ -57,10 +57,65 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+struct MildDestructiveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.subheadline.weight(.medium)).frame(maxWidth: .infinity).padding(.vertical, 12).background(AppTheme.cardElevated.opacity(configuration.isPressed ? 0.7 : 1)).foregroundStyle(AppTheme.warning).clipShape(RoundedRectangle(cornerRadius: 14)).overlay(RoundedRectangle(cornerRadius: 14).stroke(AppTheme.warning.opacity(0.4)))
+    }
+}
+
+struct StrongDestructiveButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 12).background(Color.red.opacity(configuration.isPressed ? 0.65 : 0.85)).foregroundStyle(.white).clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
 struct CardModifier: ViewModifier {
     func body(content: Content) -> some View { content.padding().background(AppTheme.card).clipShape(RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.08))) }
 }
 extension View { func gameCard() -> some View { modifier(CardModifier()) } }
+
+/// 문제별 힌트 보기 UI. 팝업(sheet/alert) 대신 현재 화면 안에 인라인으로 힌트를
+/// 쌓아 보여주고, "N/최대" 형태로 몇 개를 이미 봤는지 항상 표시한다. 힌트 상태는
+/// 이 뷰를 소유한 화면의 `@State`이므로, 뒤로가기나 홈 이동으로 화면이 사라졌다가
+/// 다시 생성되면 자동으로 0으로 리셋된다 — 별도 초기화 로직이 필요 없다.
+struct HintSection: View {
+    let hints: [String]
+    let onReveal: (_ level: Int) -> Void
+    @State private var level = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                level = min(level + 1, hints.count)
+                onReveal(level)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "lightbulb.fill")
+                    Text(level >= hints.count ? "힌트 모두 확인함 (\(level)/\(hints.count))" : "힌트 보기 (\(level)/\(hints.count))")
+                }
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .disabled(level >= hints.count)
+            ForEach(Array(hints.prefix(level).enumerated()), id: \.offset) { index, hint in
+                // 본문 콘텐츠(gameCard)와 겹치지 않도록 아이콘 + 톤 다운 배경 +
+                // 점선 테두리로 "이건 부가 정보"라는 인상을 명확히 준다.
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lightbulb").foregroundStyle(AppTheme.accent.opacity(0.8)).font(.footnote)
+                    Text("힌트 \(index + 1). \(hint)")
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(10)
+                .background(AppTheme.background.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(AppTheme.hairline, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+            }
+        }
+    }
+}
 
 /// 드래그 재정렬 관련 실험적 수정을 개별적으로 켜고 끄기 위한 플래그 모음.
 /// 특정 기능이 오류의 원인인지 확인하기 위해 하나씩 되돌렸다가 다시 켤 수 있도록

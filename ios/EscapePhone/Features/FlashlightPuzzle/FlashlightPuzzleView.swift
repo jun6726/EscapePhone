@@ -30,8 +30,6 @@ struct FlashlightPuzzleView: View {
     @EnvironmentObject private var app: AppContainer
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var model = FlashlightViewModel()
-    @State private var hintLevel = 0
-    @State private var showHint = false
     @State private var showInstructions = true
     @State private var didComplete = false
     private let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
@@ -57,13 +55,17 @@ struct FlashlightPuzzleView: View {
                         Spacer()
                         Button(app.gameProgress.controlMode == .motion ? "터치로 전환" : "기울기로 전환") { app.setControlMode(app.gameProgress.controlMode == .motion ? .touch : .motion); configureMotion() }.disabled(!app.motion.isAvailable && app.gameProgress.controlMode == .touch)
                     }.buttonStyle(.bordered)
-                    Button("힌트 보기") { hintLevel = min(hintLevel + 1, 2); app.requestHint("flashlight_search.\(app.gameProgress.controlMode.rawValue).\(hintLevel)"); showHint = true }.padding()
+                    HintSection(hints: hintTexts) { level in app.requestHint("flashlight_search.\(app.gameProgress.controlMode.rawValue).\(level)") }
                     if didComplete || app.gameProgress.flashlightSolved { Label("조작 커밋 417 발견 · 암호 메모 잠금 해제", systemImage: "checkmark.seal.fill").foregroundStyle(AppTheme.accent).gameCard(); Button("암호 메모 열기") { app.navigate(.encryptedNote) }.buttonStyle(PrimaryButtonStyle()) }
                 }.padding()
             }
-        }.navigationTitle("어두운 사진").onAppear { showInstructions = !app.gameProgress.flashlightSolved; model.resetCalibration(); configureMotion() }.onDisappear { app.motion.stop() }.onChange(of: scenePhase) { _, phase in if phase == .active { configureMotion() } else { app.motion.stop() } }.onReceive(timer) { date in guard !didComplete else { return }; handle(model.tick(date)) }.sheet(isPresented: $showHint) { HintSheet(title: "손전등 힌트 \(hintLevel)/2", text: hintText) }.alert("손전등 사용 방법", isPresented: $showInstructions) { Button("확인", role: .cancel) {} } message: { Text("스마트폰의 기울기에 따라서 손전등의 표시가 움직입니다. 특정 문자 위에서 1초이상 있으면 우측 상단에 기록됩니다.\n\n위에서 부터 힌트를 찾아주세요.").bold() }
+        }.navigationTitle("어두운 사진").onAppear { showInstructions = !app.gameProgress.flashlightSolved; model.resetCalibration(); configureMotion() }.onDisappear { app.motion.stop() }.onChange(of: scenePhase) { _, phase in if phase == .active { configureMotion() } else { app.motion.stop() } }.onReceive(timer) { date in guard !didComplete else { return }; handle(model.tick(date)) }.alert("손전등 사용 방법", isPresented: $showInstructions) { Button("확인", role: .cancel) {} } message: { Text("스마트폰의 기울기에 따라서 손전등의 표시가 움직입니다. 특정 문자 위에서 1초이상 있으면 우측 상단에 기록됩니다.\n\n위에서 부터 힌트를 찾아주세요.").bold() }
     }
-    private var hintText: String { if app.gameProgress.controlMode == .motion { return hintLevel == 1 ? "사진을 밝히는 방법이 화면 터치만은 아닐 수 있습니다." : "휴대폰을 천천히 기울여 사진의 구석을 확인하세요." }; return hintLevel == 1 ? "빛을 사진의 어두운 부분으로 이동해 보세요." : "빛을 천천히 드래그해 사진의 구석을 확인하세요." }
+    private var hintTexts: [String] {
+        app.gameProgress.controlMode == .motion
+            ? ["사진을 밝히는 방법이 화면 터치만은 아닐 수 있습니다.", "휴대폰을 천천히 기울여 사진의 구석을 확인하세요."]
+            : ["빛을 사진의 어두운 부분으로 이동해 보세요.", "빛을 천천히 드래그해 사진의 구석을 확인하세요."]
+    }
     private func configureMotion() { app.motion.stop(); app.motion.onAttitudeChanged = { [weak model] attitude in model?.handle(attitude) }; if app.gameProgress.controlMode == .motion { app.motion.calibrate(); app.motion.start() } }
     private func handle(_ event: FlashlightPuzzleEvent?) { guard let event else { return }; switch event { case .digitDiscovered(let digit): app.recordDigit(digit); app.haptics.play(.digitDiscovered); case .completed: app.completeFlashlightPuzzle(); app.haptics.play(.success); didComplete = true; app.motion.stop() } }
 }
